@@ -114,7 +114,7 @@ export default function TransactionsPage() {
         <div className="border-t border-border">
           <TransactionTable
             rows={filtered}
-            empty={rows.length === 0 ? "No transactions yet. Make a deposit to get started." : "No transactions match your filters."}
+            empty={rows.length === 0 ? "No transactions on this account yet." : "No transactions match your filters."}
             onResumeTransfer={(tx) => {
               setResumeTx(tx)
               setTransferOpen(true)

@@ -51,8 +51,6 @@ export const DEFAULT_BENEFICIARY: Beneficiary = {
   bic: "AGRIFRPP839",
 }
 
-export const DEMO_ADMIN = { email: "admin@capitalbank.demo", password: "admin123" }
-export const DEMO_CUSTOMER = { email: "jordan.lee@capitalbank.demo", password: "demo1234" }
 
 export const TX_TYPE_LABELS: Record<TxType, string> = {
   deposit: "Deposit",

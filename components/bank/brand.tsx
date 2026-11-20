@@ -1,10 +1,15 @@
 import Link from "next/link"
-import { Landmark } from "lucide-react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
+/**
+ * Allied Capital Bank wordmark from public/alliedbank-logo-2.png (216 × 60).
+ * Rendered from the single source asset so the website, login screen and
+ * dashboard always show the same logo.
+ */
 export function Brand({
   href = "/",
-  subtitle = "Online banking",
+  subtitle,
   className,
   markClassName,
   compact = false,
@@ -16,21 +21,18 @@ export function Brand({
   compact?: boolean
 }) {
   return (
-    <Link href={href} className={cn("flex items-center gap-2.5", className)}>
-      <span
-        className={cn(
-          "grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#dca53e] to-[#b4771a] text-white shadow-sm",
-          markClassName,
-        )}
-      >
-        <Landmark className="size-[18px]" strokeWidth={2.2} />
-      </span>
-      {!compact && (
-        <span className="flex flex-col">
-          <span className="text-[17px] leading-tight font-extrabold tracking-tight text-[#222d38]">Capital Bank</span>
-          <span className="mt-0.5 text-[8px] leading-none font-bold tracking-[0.18em] text-[#a67827] uppercase">
-            {subtitle}
-          </span>
+    <Link href={href} className={cn("flex items-center gap-2.5", className)} aria-label="Allied Capital Bank home">
+      <Image
+        src="/alliedbank-logo-2.png"
+        alt="Allied Capital Bank"
+        width={216}
+        height={60}
+        priority
+        className={cn("h-10 w-auto", compact && "h-8", markClassName)}
+      />
+      {subtitle && (
+        <span className="mt-0.5 text-[8px] leading-none font-bold tracking-[0.18em] text-[#a67827] uppercase">
+          {subtitle}
         </span>
       )}
     </Link>

@@ -4,8 +4,20 @@ import { AlliedShell } from "@/components/allied/allied-shell"
 import { PageBanner } from "@/components/allied/page-banner"
 
 export const metadata: Metadata = {
-  title: "Business Banking — Allied Capital Bank",
+  title: "Business Banking",
   description: "Business accounts, payments, lending and trade services for small and medium sized enterprises.",
+  openGraph: {
+    title: "Business Banking",
+    description: "Business accounts, payments, lending and trade services for small and medium sized enterprises.",
+    url: "/business-banking",
+  },
+  twitter: {
+    title: "Business Banking",
+    description: "Business accounts, payments, lending and trade services for small and medium sized enterprises.",
+  },
+  alternates: {
+    canonical: "/business-banking",
+  },
 }
 
 export default function BusinessBankingPage() {

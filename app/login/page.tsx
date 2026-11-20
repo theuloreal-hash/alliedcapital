@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useState, type FormEvent } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { DEMO_ADMIN, DEMO_CUSTOMER } from "@/lib/bank"
 import { useBank } from "@/lib/bank-store"
 
 export default function LoginPage() {
@@ -35,9 +35,19 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f8f8f6] px-4">
       <div className="w-full max-w-[380px] rounded-xl border border-[#d7d7d7] bg-white p-6">
-        <div className="mb-5 text-center">
-          <h1 className="text-[20px] font-semibold text-[#333333]">Sign in</h1>
-          <p className="mt-1 text-[11.5px] text-[#777777]">Capital Bank online banking</p>
+        <div className="mb-6 text-center">
+          <Link href="/" aria-label="Allied Capital Bank home" className="inline-flex">
+            <Image
+              src="/alliedbank-logo-2.png"
+              alt="Allied Capital Bank"
+              width={216}
+              height={60}
+              priority
+              className="h-11 w-auto"
+            />
+          </Link>
+          <h1 className="mt-4 text-[18px] font-semibold text-[#333333]">Internet banking sign in</h1>
+          <p className="mt-1 text-[11.5px] text-[#777777]">Access your Allied Capital Bank account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -76,10 +86,8 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-[10px] text-[#9a9a9a]">
-          Demo customer: {DEMO_CUSTOMER.email} / {DEMO_CUSTOMER.password}
-          <br />
-          Demo admin: {DEMO_ADMIN.email} / {DEMO_ADMIN.password}
+        <p className="mt-4 text-center text-[10px] leading-relaxed text-[#9a9a9a]">
+          Use the username or email address issued by the bank.
         </p>
 
         <div className="mt-4 text-center">

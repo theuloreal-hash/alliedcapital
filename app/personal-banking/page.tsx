@@ -4,8 +4,20 @@ import { AlliedShell } from "@/components/allied/allied-shell"
 import { PageBanner } from "@/components/allied/page-banner"
 
 export const metadata: Metadata = {
-  title: "Personal Banking — Allied Capital Bank",
+  title: "Personal Banking",
   description: "Everyday accounts, savings, cards and borrowing for personal banking customers.",
+  openGraph: {
+    title: "Personal Banking",
+    description: "Everyday accounts, savings, cards and borrowing for personal banking customers.",
+    url: "/personal-banking",
+  },
+  twitter: {
+    title: "Personal Banking",
+    description: "Everyday accounts, savings, cards and borrowing for personal banking customers.",
+  },
+  alternates: {
+    canonical: "/personal-banking",
+  },
 }
 
 export default function PersonalBankingPage() {

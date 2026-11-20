@@ -121,8 +121,6 @@ export default function ProfilePage() {
               <span className="text-[#333333]">{user.name}</span>
               <span>Email</span>
               <span className="text-[#333333]">{user.email}</span>
-              <span>Username</span>
-              <span className="text-[#333333]">{user.username || "-"}</span>
               <span>Account number</span>
               <span className="text-[#333333]">{user.accountNumber}</span>
               <span>Telephone</span>

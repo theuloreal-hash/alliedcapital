@@ -3,8 +3,23 @@ import { AlliedShell } from "@/components/allied/allied-shell"
 import { PageBanner } from "@/components/allied/page-banner"
 
 export const metadata: Metadata = {
-  title: "About Us — Allied Capital Bank",
-  description: "About Allied Capital Bank.",
+  title: "About Allied Capital Bank",
+  description:
+    "Learn about Allied Capital Bank, our customer-focused approach and the banking services we provide to individuals and businesses.",
+  openGraph: {
+    title: "About Allied Capital Bank",
+    description:
+      "Learn about Allied Capital Bank, our customer-focused approach and the banking services we provide to individuals and businesses.",
+    url: "/about",
+  },
+  twitter: {
+    title: "About Allied Capital Bank",
+    description:
+      "Learn about Allied Capital Bank, our customer-focused approach and the banking services we provide to individuals and businesses.",
+  },
+  alternates: {
+    canonical: "/about",
+  },
 }
 
 export default function AboutPage() {

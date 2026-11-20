@@ -4,9 +4,25 @@ import { FileText, Monitor, User } from "lucide-react"
 import { AlliedShell } from "@/components/allied/allied-shell"
 
 export const metadata: Metadata = {
-  title: "Allied Capital Bank",
+  title: {
+    absolute: "Allied Capital Bank",
+  },
   description:
     "Allied Capital Bank delivers customer-focused banking services that are friendly, relevant, interesting, rewarding, intuitive and fun.",
+  openGraph: {
+    title: "Allied Capital Bank",
+    description:
+      "Allied Capital Bank delivers customer-focused banking services that are friendly, relevant, interesting, rewarding, intuitive and fun.",
+    url: "/",
+  },
+  twitter: {
+    title: "Allied Capital Bank",
+    description:
+      "Allied Capital Bank delivers customer-focused banking services that are friendly, relevant, interesting, rewarding, intuitive and fun.",
+  },
+  alternates: {
+    canonical: "/",
+  },
 }
 
 const features = [

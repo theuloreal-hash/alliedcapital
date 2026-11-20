@@ -4,7 +4,6 @@ import { useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
-  ArrowDownToLine,
   ArrowLeftRight,
   ArrowUpRight,
   ChevronRight,
@@ -19,14 +18,13 @@ import {
 import { cn } from "@/lib/utils"
 import { useBank } from "@/lib/bank-store"
 import { Brand } from "@/components/bank/brand"
-import { Avatar, Pill } from "@/components/bank/ui"
+import { Avatar } from "@/components/bank/ui"
 
 const NAV = {
   user: [
     { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
+    { label: "Transfer", href: "/transfer", icon: ArrowUpRight },
     { label: "Profile", href: "/profile", icon: User },
-    { label: "Deposit funds", href: "/deposit", icon: ArrowDownToLine },
   ],
   admin: [
     { label: "Overview", href: "/admin", icon: LayoutDashboard },
@@ -86,9 +84,6 @@ export function AppShell({ role, children }: { role: "user" | "admin"; children:
         <div className="mt-6 flex items-center gap-2 rounded-lg border border-[#f0e5d1] bg-[#fcf8ef] px-3 py-2 text-[11px] font-semibold text-[#7f6a46]">
           <span className="size-1.5 rounded-full bg-[#c58a27]" />
           {role === "admin" ? "Admin console" : "Personal banking"}
-          <span className="ml-auto rounded bg-[#f5ebd8] px-1.5 py-0.5 text-[8px] font-bold tracking-[0.08em] text-[#a27629] uppercase">
-            Demo
-          </span>
         </div>
 
         <div className="mt-6 mb-2 px-3 text-[9px] font-bold tracking-[0.14em] text-[#a0a5a8] uppercase">
@@ -127,9 +122,9 @@ export function AppShell({ role, children }: { role: "user" | "admin"; children:
           <div className="mb-2 grid size-7 place-items-center rounded-md bg-[#f3ecdb] text-[#b17d26]">
             <ShieldCheck className="size-4" />
           </div>
-          <div className="text-[11px] font-bold text-[#4d5860]">Demo environment</div>
+          <div className="text-[11px] font-bold text-[#4d5860]">Need help?</div>
           <p className="mt-1 text-[10.5px] leading-relaxed text-[#8a9196]">
-            Balances and transfers are simulated in this browser. No real money moves.
+            Call 0700 225 4255 or email service@alliedcapitalbank.com for account support.
           </p>
           <Link href="/" className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-bold text-[#a17426] hover:underline">
             Back to website <ChevronRight className="size-3" />
@@ -186,7 +181,6 @@ export function AppShell({ role, children }: { role: "user" | "admin"; children:
               <ShieldCheck className="size-3.5 text-[#72967f]" />
               Secure session
             </div>
-            <Pill tone="brand">Demo mode</Pill>
             <div className="h-6 w-px bg-border" />
             <div className="flex items-center gap-2">
               <Avatar name={currentUser?.name ?? "Guest"} className="size-8" />
@@ -201,8 +195,8 @@ export function AppShell({ role, children }: { role: "user" | "admin"; children:
         <main className="mx-auto w-full max-w-[1180px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           {children}
           <footer className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4 text-[10px] text-[#a0a5a6]">
-            <span>Capital Bank · demo application</span>
-            <span>Simulated data only — no real financial services provided</span>
+            <span>© 2026 Allied Capital Bank · Internet banking</span>
+            <span>All rights reserved</span>
           </footer>
         </main>
       </div>

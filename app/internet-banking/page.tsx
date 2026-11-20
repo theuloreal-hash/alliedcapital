@@ -4,8 +4,20 @@ import { AlliedShell } from "@/components/allied/allied-shell"
 import { ForexWidget } from "@/components/allied/forex-widget"
 
 export const metadata: Metadata = {
-  title: "Internet Banking — Allied Capital Bank",
+  title: "Internet Banking",
   description: "Log on to internet banking, download application documents and view live forex rates.",
+  openGraph: {
+    title: "Internet Banking",
+    description: "Log on to internet banking, download application documents and view live forex rates.",
+    url: "/internet-banking",
+  },
+  twitter: {
+    title: "Internet Banking",
+    description: "Log on to internet banking, download application documents and view live forex rates.",
+  },
+  alternates: {
+    canonical: "/internet-banking",
+  },
 }
 
 const documents = [

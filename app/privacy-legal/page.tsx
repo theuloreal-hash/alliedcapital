@@ -3,8 +3,20 @@ import { AlliedShell } from "@/components/allied/allied-shell"
 import { PageBanner } from "@/components/allied/page-banner"
 
 export const metadata: Metadata = {
-  title: "Privacy & Legal — Allied Capital Bank",
+  title: "Privacy & Legal",
   description: "Privacy, website terms and legal information for Allied Capital Bank customers.",
+  openGraph: {
+    title: "Privacy & Legal",
+    description: "Privacy, website terms and legal information for Allied Capital Bank customers.",
+    url: "/privacy-legal",
+  },
+  twitter: {
+    title: "Privacy & Legal",
+    description: "Privacy, website terms and legal information for Allied Capital Bank customers.",
+  },
+  alternates: {
+    canonical: "/privacy-legal",
+  },
 }
 
 export default function PrivacyLegalPage() {

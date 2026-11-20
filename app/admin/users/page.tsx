@@ -13,7 +13,7 @@ import { useBank } from "@/lib/bank-store"
 
 type AdjustState = { user: BankUser; direction: "in" | "out" }
 
-const emptyForm = { name: "", email: "", password: "demo1234", openingBalance: "" }
+const emptyForm = { name: "", email: "", password: "", openingBalance: "" }
 
 export default function AdminUsersPage() {
   const { users: allUsers, createCustomer, updateCustomer, setCustomerStatus, deleteCustomer, restoreCustomer, adjustBalance, resetPassword, impersonateCustomer, userTransactions } = useBank()
@@ -264,7 +264,7 @@ export default function AdminUsersPage() {
 
         <div className="flex items-start gap-2 border-t border-border px-4 py-3 text-[10.5px] leading-relaxed text-[#7f8a80] sm:px-5">
           <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-[#6f9177]" />
-          Customer passwords are visible to the admin in this demo so you can sign in as a newly created customer.
+          Customers receive their sign-in details by email and can change the password from their profile.
         </div>
       </Card>
 
@@ -304,7 +304,7 @@ export default function AdminUsersPage() {
               />
             </Field>
             <div className="grid gap-3.5 sm:grid-cols-2">
-              <Field label="Temporary password" htmlFor="new-password" hint="At least 6 characters">
+              <Field label="Temporary password" htmlFor="new-password" hint="Emailed to the customer · at least 6 characters">
                 <Input
                   id="new-password"
                   value={form.password}

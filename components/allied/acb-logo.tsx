@@ -1,44 +1,26 @@
 import Link from "next/link"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
+/**
+ * Website header/footer logo. The artwork in public/alliedbank-logo-2.png is
+ * dark, so on the dark footer it sits on a white chip to stay legible.
+ */
 export function AcbLogo({ light = false, large = false }: { light?: boolean; large?: boolean }) {
-  const markSize = large ? 42 : 36
-
   return (
-    <Link href="/" className="flex items-center gap-2.5" aria-label="Allied Capital Bank home">
-      <svg
-        width={markSize}
-        height={markSize}
-        viewBox="0 0 40 40"
-        fill="none"
-        aria-hidden="true"
-        className="shrink-0"
-      >
-        <rect x="2" y="2" width="15" height="15" rx="1.5" stroke="#F4A128" strokeWidth="3" />
-        <rect x="23" y="2" width="15" height="15" rx="1.5" stroke={light ? "#C9C9C9" : "#8C8C8C"} strokeWidth="3" />
-        <rect x="2" y="23" width="15" height="15" rx="1.5" stroke={light ? "#C9C9C9" : "#8C8C8C"} strokeWidth="3" />
-        <rect x="23" y="23" width="15" height="15" rx="1.5" stroke="#F4A128" strokeWidth="3" />
-      </svg>
-      <span className="flex flex-col">
-        <span
-          className={cn(
-            "leading-none font-medium tracking-[0.03em]",
-            large ? "text-[31px]" : "text-[27px]",
-            light ? "text-white" : "text-[#333333]",
-          )}
-        >
-          ACB
-        </span>
-        <span
-          className={cn(
-            "mt-[3px] text-[6.5px] leading-none tracking-[0.14em]",
-            light ? "text-[#BDBDBD]" : "text-[#777777]",
-            large && "text-[7.5px]",
-          )}
-        >
-          ALLIED CAPITAL BANK
-        </span>
-      </span>
+    <Link
+      href="/"
+      aria-label="Allied Capital Bank home"
+      className={cn("inline-flex items-center", light && "rounded bg-white px-2 py-1.5")}
+    >
+      <Image
+        src="/alliedbank-logo-2.png"
+        alt="Allied Capital Bank"
+        width={216}
+        height={60}
+        priority
+        className={cn("w-auto", large ? "h-[44px]" : "h-[38px]")}
+      />
     </Link>
   )
 }

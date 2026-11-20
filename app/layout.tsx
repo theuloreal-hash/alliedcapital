@@ -4,24 +4,46 @@ import { BankProvider } from '@/lib/bank-store'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Allied Capital Bank',
+  metadataBase: new URL('https://www.alliedcapitalbank.com'),
+  title: {
+    default: 'Allied Capital Bank',
+    template: '%s | Allied Capital Bank',
+  },
   description:
-    'Allied Capital Bank delivers customer-focused banking services across corporate, business, personal and private banking, with secure internet banking.',
-  icons: {
-    icon: [
+    'Explore personal, business, corporate and private banking with Allied Capital Bank, alongside secure online banking services.',
+  applicationName: 'Allied Capital Bank',
+  category: 'finance',
+  creator: 'Allied Capital Bank',
+  publisher: 'Allied Capital Bank',
+  openGraph: {
+    type: 'website',
+    locale: 'en_GB',
+    siteName: 'Allied Capital Bank',
+    title: 'Allied Capital Bank',
+    description:
+      'Explore personal, business, corporate and private banking with Allied Capital Bank, alongside secure online banking services.',
+    images: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
+        url: '/alliedbank-logo-2.png',
+        width: 216,
+        height: 60,
+        alt: 'Allied Capital Bank',
       },
     ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Allied Capital Bank',
+    description:
+      'Explore personal, business, corporate and private banking with Allied Capital Bank, alongside secure online banking services.',
+    images: ['/alliedbank-logo-2.png'],
+  },
+  icons: {
+    icon: {
+      url: '/alliedbank-logo-2.png',
+      media: '(prefers-color-scheme: light)',
+      sizes: '216x60',
+    },
     apple: '/apple-icon.png',
   },
 }

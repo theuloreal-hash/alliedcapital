@@ -4,9 +4,23 @@ import { AlliedShell } from "@/components/allied/allied-shell"
 import { PageBanner } from "@/components/allied/page-banner"
 
 export const metadata: Metadata = {
-  title: "Corporate Banking — Allied Capital Bank",
+  title: "Corporate Banking",
   description:
     "Relationship-led corporate banking for medium sized businesses, large conglomerates, multinationals and institutions.",
+  openGraph: {
+    title: "Corporate Banking",
+    description:
+      "Relationship-led corporate banking for medium sized businesses, large conglomerates, multinationals and institutions.",
+    url: "/corporate-banking",
+  },
+  twitter: {
+    title: "Corporate Banking",
+    description:
+      "Relationship-led corporate banking for medium sized businesses, large conglomerates, multinationals and institutions.",
+  },
+  alternates: {
+    canonical: "/corporate-banking",
+  },
 }
 
 const services = [

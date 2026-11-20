@@ -4,8 +4,23 @@ import { PageBanner } from "@/components/allied/page-banner"
 import { ContactForm } from "@/components/allied/contact-form"
 
 export const metadata: Metadata = {
-  title: "Contact a Relationship Manager — Allied Capital Bank",
-  description: "Send an enquiry to an Allied Capital Bank relationship manager.",
+  title: "Contact Allied Capital Bank",
+  description:
+    "Contact an Allied Capital Bank relationship manager to discuss corporate, business, personal or private banking.",
+  openGraph: {
+    title: "Contact Allied Capital Bank",
+    description:
+      "Contact an Allied Capital Bank relationship manager to discuss corporate, business, personal or private banking.",
+    url: "/contact",
+  },
+  twitter: {
+    title: "Contact Allied Capital Bank",
+    description:
+      "Contact an Allied Capital Bank relationship manager to discuss corporate, business, personal or private banking.",
+  },
+  alternates: {
+    canonical: "/contact",
+  },
 }
 
 export default function ContactPage() {
