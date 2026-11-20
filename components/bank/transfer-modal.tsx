@@ -238,7 +238,7 @@ export function TransferModal({
             <>
               <div className="space-y-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
                 <div className="flex items-center justify-between text-[12px] text-[#44534b]">
-                  <span className="font-semibold">Transfer progress</span>
+                  <span className="font-semibold">Transferring...</span>
                   <span className="font-bold tabular-nums text-emerald-700">{progress}%</span>
                 </div>
                 <div
