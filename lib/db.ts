@@ -13,8 +13,21 @@ declare global {
 }
 
 function create(): Client {
-  const url = process.env.TURSO_DATABASE_URL ?? "file:local.db"
-  const authToken = process.env.TURSO_AUTH_TOKEN
+  const configuredUrl = process.env.TURSO_DATABASE_URL?.trim()
+  const isVercel = process.env.VERCEL === "1"
+
+  if (!configuredUrl && isVercel) {
+    throw new Error(
+      "TURSO_DATABASE_URL is required on Vercel. Configure TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in the Vercel project environment variables.",
+    )
+  }
+
+  const url = configuredUrl || "file:local.db"
+  const authToken = process.env.TURSO_AUTH_TOKEN?.trim()
+
+  if (url.startsWith("libsql://") && !authToken) {
+    throw new Error("TURSO_AUTH_TOKEN is required when using a Turso libsql:// database URL.")
+  }
 
   return createClient(authToken ? { url, authToken } : { url })
 }
