@@ -10,7 +10,7 @@ import { usePendingAction } from "@/components/bank/use-pending-action"
 import { Button } from "@/components/ui/button"
 import { Field, FormError, Input, Select } from "@/components/bank/form"
 import { TransactionTable } from "@/components/bank/transaction-table"
-import { TX_TYPE_LABELS, currency, sumAmounts, type Transaction, type TxType } from "@/lib/bank"
+import { TX_TYPE_LABELS, currency, generateCotCode, sumAmounts, type Transaction, type TxType } from "@/lib/bank"
 import { useBank } from "@/lib/bank-store"
 
 export default function AdminTransactionsPage() {
@@ -164,8 +164,27 @@ export default function AdminTransactionsPage() {
             }}
             className="space-y-3.5"
           >
-            <Field label="COT code" htmlFor="cot-code">
-              <Input id="cot-code" value={cotCode} onChange={(event) => setCotCode(event.target.value)} placeholder="e.g. COT-1234" />
+            <Field label="COT code" htmlFor="cot-code" hint="Generate a secure 10-character code.">
+              <div className="flex gap-2">
+                <Input
+                  id="cot-code"
+                  value={cotCode}
+                  onChange={(event) => setCotCode(event.target.value)}
+                  placeholder="Click Generate code"
+                  className="font-mono tracking-wider"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="shrink-0 px-3 text-[11.5px]"
+                  onClick={() => {
+                    setCotCode(generateCotCode())
+                    setCotError("")
+                  }}
+                >
+                  Generate code
+                </Button>
+              </div>
             </Field>
             <Field label="Progress percentage" htmlFor="cot-percent" hint="100 = complete">
               <select

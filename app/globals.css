@@ -114,6 +114,53 @@ button {
   color: #3b2c0e;
 }
 
+@keyframes cot-progress-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.cot-progress-fill {
+  transition: width 1800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cot-progress-fill::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 45%) 50%, transparent 80%);
+  animation: cot-progress-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes cot-confetti-fall {
+  from {
+    opacity: 1;
+    transform: translateY(-10px) rotate(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(90px) rotate(540deg);
+  }
+}
+
+.cot-confetti {
+  animation: cot-confetti-fall 1.5s ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cot-progress-fill {
+    transition-duration: 0ms;
+  }
+
+  .cot-progress-fill::after,
+  .cot-confetti {
+    animation: none;
+  }
+}
+
 /* Allied Capital Bank public site: traditional corporate typography and layout */
 .allied-site {
   font-family: 'Roboto', ui-sans-serif, system-ui, sans-serif;

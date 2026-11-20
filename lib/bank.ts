@@ -51,6 +51,29 @@ export const DEFAULT_BENEFICIARY: Beneficiary = {
   bic: "",
 }
 
+export function generateCotCode() {
+  const groups = ["ABCDEFGHJKLMNPQRSTUVWXYZ", "abcdefghijkmnopqrstuvwxyz", "23456789", "!@#$%&*+-=?"]
+  const allCharacters = groups.join("")
+  const randomIndex = (limit: number) => {
+    const range = 0x1_0000_0000
+    const ceiling = Math.floor(range / limit) * limit
+    const value = new Uint32Array(1)
+    do {
+      globalThis.crypto.getRandomValues(value)
+    } while (value[0] >= ceiling)
+    return value[0] % limit
+  }
+
+  const characters = groups.map((group) => group[randomIndex(group.length)])
+  while (characters.length < 10) characters.push(allCharacters[randomIndex(allCharacters.length)])
+
+  for (let index = characters.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomIndex(index + 1)
+    ;[characters[index], characters[swapIndex]] = [characters[swapIndex], characters[index]]
+  }
+
+  return characters.join("")
+}
 
 export const TX_TYPE_LABELS: Record<TxType, string> = {
   deposit: "Deposit",
