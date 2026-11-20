@@ -44,13 +44,13 @@ export function AppShell({ role, children }: { role: "user" | "admin"; children:
   const nav = NAV[role]
   const active = [...nav].sort((a, b) => b.href.length - a.href.length).find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await logout()
     router.replace("/login")
   }
 
-  function handleStopImpersonation() {
-    stopImpersonation()
+  async function handleStopImpersonation() {
+    await stopImpersonation()
     router.replace("/admin/users")
   }
 

@@ -34,7 +34,7 @@ export default function DepositPage() {
 
   if (!currentUser) return null
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError("")
     const value = Number(amount)
@@ -42,7 +42,7 @@ export default function DepositPage() {
       setError("Enter a valid amount greater than $0.00.")
       return
     }
-    const result = deposit(currentUser!.id, value, source, reference)
+    const result = await deposit(currentUser!.id, value, source, reference)
     if (!result.ok) {
       setError(result.error)
       return

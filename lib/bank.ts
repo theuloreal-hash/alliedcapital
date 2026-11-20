@@ -33,6 +33,7 @@ export type BankUser = {
   id: string
   name: string
   email: string
+  username?: string
   role: Role
   accountNumber: string
   balance: number

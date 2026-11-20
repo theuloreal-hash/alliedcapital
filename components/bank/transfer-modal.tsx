@@ -64,7 +64,7 @@ export function TransferModal({
 
   const value = Number(amount)
 
-  function handleTransfer(event: FormEvent) {
+  async function handleTransfer(event: FormEvent) {
     event.preventDefault()
     setError("")
     if (!Number.isFinite(value) || value <= 0) {
@@ -79,19 +79,19 @@ export function TransferModal({
       setError("Beneficiary name, IBAN and BIC are required.")
       return
     }
-    const result = initiateTransfer(currentUser!.id, { amount: value, beneficiary, note })
+    const result = await initiateTransfer(currentUser!.id, { amount: value, beneficiary, note })
     if (!result.ok) {
       setError(result.error)
       return
     }
-    setTxId(result.transactionId ?? null)
+    setTxId(result.transactionId)
   }
 
-  function handleCot(event: FormEvent) {
+  async function handleCot(event: FormEvent) {
     event.preventDefault()
     if (!txId) return
     setCotError("")
-    const result = submitCot(txId, cotInput)
+    const result = await submitCot(txId, cotInput)
     if (!result.ok) {
       setCotError(result.error)
       return

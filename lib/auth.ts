@@ -39,6 +39,7 @@ type UserRow = {
   id: string
   name: string
   email: string
+  username: string | null
   password_hash: string
   role: Role
   account_number: string
@@ -55,6 +56,7 @@ export function mapUser(row: UserRow): BankUser {
     id: row.id,
     name: row.name,
     email: row.email,
+    username: row.username ?? undefined,
     role: row.role,
     accountNumber: row.account_number,
     balance: row.balance_cents / 100,
@@ -70,6 +72,19 @@ export async function findUserByEmail(email: string) {
   const result = await db.execute({
     sql: "SELECT * FROM users WHERE lower(email) = ? LIMIT 1",
     args: [email.trim().toLowerCase()],
+  })
+  return (result.rows[0] as unknown as UserRow | undefined) ?? null
+}
+
+/** Sign-in accepts either the email address or the WordPress username. */
+export async function findUserByIdentifier(identifier: string) {
+  const value = identifier.trim().toLowerCase()
+  if (!value) return null
+  const byEmail = await findUserByEmail(value)
+  if (byEmail) return byEmail
+  const result = await db.execute({
+    sql: "SELECT * FROM users WHERE lower(username) = ? LIMIT 1",
+    args: [value],
   })
   return (result.rows[0] as unknown as UserRow | undefined) ?? null
 }

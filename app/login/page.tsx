@@ -7,7 +7,7 @@ import { DEMO_ADMIN, DEMO_CUSTOMER } from "@/lib/bank"
 import { useBank } from "@/lib/bank-store"
 
 export default function LoginPage() {
-  const { login, ready, currentUser, users } = useBank()
+  const { login, ready, currentUser } = useBank()
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -19,22 +19,17 @@ export default function LoginPage() {
     router.replace(currentUser.role === "admin" ? "/admin" : "/dashboard")
   }, [ready, currentUser, router])
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError("")
     setSubmitting(true)
-    const user = login(email, password)
+    const result = await login(email, password)
     setSubmitting(false)
-    if (!user) {
-      const existing = users.find((row) => row.email.toLowerCase() === email.trim().toLowerCase())
-      setError(
-        existing && existing.password === password
-          ? "This account is not active. Please contact the bank."
-          : "Email or password is incorrect.",
-      )
+    if (!result.ok) {
+      setError(result.error)
       return
     }
-    router.replace(user.role === "admin" ? "/admin" : "/dashboard")
+    router.replace(result.user.role === "admin" ? "/admin" : "/dashboard")
   }
 
   return (
@@ -49,8 +44,8 @@ export default function LoginPage() {
           <label className="flex flex-col gap-1.5">
             <span className="text-[11.5px] font-medium text-[#555555]">Username / Email</span>
             <input
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required

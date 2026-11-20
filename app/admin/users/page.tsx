@@ -16,7 +16,7 @@ type AdjustState = { user: BankUser; direction: "in" | "out" }
 const emptyForm = { name: "", email: "", password: "demo1234", openingBalance: "" }
 
 export default function AdminUsersPage() {
-  const { users: allUsers, createCustomer, updateCustomer, setCustomerStatus, deleteCustomer, restoreCustomer, adjustBalance, impersonateCustomer, userTransactions } = useBank()
+  const { users: allUsers, createCustomer, updateCustomer, setCustomerStatus, deleteCustomer, restoreCustomer, adjustBalance, resetPassword, impersonateCustomer, userTransactions } = useBank()
   const customers = allUsers.filter((user) => user.role === "user")
   const router = useRouter()
   const { message, tone, notify } = useToast()
@@ -35,12 +35,18 @@ export default function AdminUsersPage() {
   const [editTarget, setEditTarget] = useState<BankUser | null>(null)
   const [editForm, setEditForm] = useState({ name: "", email: "", password: "", phone: "", dob: "" })
   const [editError, setEditError] = useState("")
+  const [passwordTarget, setPasswordTarget] = useState<BankUser | null>(null)
+  const [passwordValue, setPasswordValue] = useState("")
+  const [passwordError, setPasswordError] = useState("")
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return customers.filter((customer) => {
       const matchesQuery =
-        !needle || `${customer.name} ${customer.email} ${customer.accountNumber}`.toLowerCase().includes(needle)
+        !needle ||
+        `${customer.name} ${customer.email} ${customer.username ?? ""} ${customer.accountNumber}`
+          .toLowerCase()
+          .includes(needle)
       const matchesStatus = status === "all" || customer.status === status
       return matchesQuery && matchesStatus
     })
@@ -52,10 +58,10 @@ export default function AdminUsersPage() {
     setCreateOpen(true)
   }
 
-  function handleCreate(event: FormEvent) {
+  async function handleCreate(event: FormEvent) {
     event.preventDefault()
     const opening = Number(form.openingBalance || 0)
-    const result = createCustomer({
+    const result = await createCustomer({
       name: form.name,
       email: form.email,
       password: form.password,
@@ -65,7 +71,7 @@ export default function AdminUsersPage() {
       setFormError(result.error)
       return
     }
-    notify(`Customer created. Sign-in: ${form.email.trim()} / ${form.password}`)
+    notify(`Customer created. Sign-in details emailed to ${result.email}.`)
     setCreateOpen(false)
     setForm(emptyForm)
   }
@@ -77,11 +83,11 @@ export default function AdminUsersPage() {
     setAdjustError("")
   }
 
-  function handleAdjust(event: FormEvent) {
+  async function handleAdjust(event: FormEvent) {
     event.preventDefault()
     if (!adjust) return
     const value = Number(adjustAmount)
-    const result = adjustBalance(
+    const result = await adjustBalance(
       adjust.user.id,
       value,
       adjust.direction,
@@ -97,9 +103,9 @@ export default function AdminUsersPage() {
     setAdjust(null)
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleteTarget) return
-    deleteCustomer(deleteTarget.id)
+    await deleteCustomer(deleteTarget.id)
     notify(`${deleteTarget.name}'s account was deleted. You can restore it later.`)
     setDeleteTarget(null)
   }
@@ -109,7 +115,7 @@ export default function AdminUsersPage() {
     setEditForm({
       name: user.name,
       email: user.email,
-      password: user.password,
+      password: "",
       phone: user.phone ?? "",
       dob: user.dob ?? "",
     })
@@ -117,13 +123,13 @@ export default function AdminUsersPage() {
     setSelectedUser(null)
   }
 
-  function handleEdit(event: FormEvent) {
+  async function handleEdit(event: FormEvent) {
     event.preventDefault()
     if (!editTarget) return
-    const result = updateCustomer(editTarget.id, {
+    const result = await updateCustomer(editTarget.id, {
       name: editForm.name.trim(),
       email: editForm.email.trim(),
-      password: editForm.password,
+      ...(editForm.password ? { password: editForm.password } : {}),
       phone: editForm.phone.trim(),
       dob: editForm.dob.trim(),
     })
@@ -131,12 +137,30 @@ export default function AdminUsersPage() {
       setEditError(result.error)
       return
     }
-    notify(`${editForm.name.trim()}'s profile updated.`)
+    notify(
+      editForm.password
+        ? `${editForm.name.trim()}'s profile updated and the new password emailed to them.`
+        : `${editForm.name.trim()}'s profile updated.`,
+    )
     setEditTarget(null)
   }
 
-  function handleImpersonate(user: BankUser) {
-    impersonateCustomer(user.id)
+  async function handleResetPassword(event: FormEvent) {
+    event.preventDefault()
+    if (!passwordTarget) return
+    const result = await resetPassword(passwordTarget.id, passwordValue)
+    if (!result.ok) {
+      setPasswordError(result.error)
+      return
+    }
+    notify(`New password emailed to ${passwordTarget.email}.`)
+    setPasswordTarget(null)
+    setPasswordValue("")
+    setPasswordError("")
+  }
+
+  async function handleImpersonate(user: BankUser) {
+    await impersonateCustomer(user.id)
     setSelectedUser(null)
     notify(`Now viewing as ${user.name}.`)
     router.push("/dashboard")
@@ -208,6 +232,9 @@ export default function AdminUsersPage() {
                           <div className="min-w-0">
                             <div className="text-[12.5px] font-semibold text-[#46515a]">{customer.name}</div>
                             <div className="text-[10.5px] text-[#a0a5a5]">{customer.email}</div>
+                            {customer.username && (
+                              <div className="text-[10px] text-[#b4b8b9]">@{customer.username}</div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -409,6 +436,18 @@ export default function AdminUsersPage() {
             <Button variant="outline" className="h-9 justify-start px-3 text-[12px]" onClick={() => openEdit(selectedUser)}>
               Edit profile
             </Button>
+            <Button
+              variant="outline"
+              className="h-9 justify-start px-3 text-[12px]"
+              onClick={() => {
+                setPasswordTarget(selectedUser)
+                setPasswordValue("")
+                setPasswordError("")
+                setSelectedUser(null)
+              }}
+            >
+              Reset password
+            </Button>
             <Button variant="outline" className="h-9 justify-start px-3 text-[12px]" onClick={() => handleImpersonate(selectedUser)}>
               Impersonate
             </Button>
@@ -416,9 +455,9 @@ export default function AdminUsersPage() {
               <Button
                 variant="outline"
                 className="h-9 justify-start px-3 text-[12px]"
-                onClick={() => {
+                onClick={async () => {
                   const next = selectedUser.status === "Active" ? "Suspended" : "Active"
-                  setCustomerStatus(selectedUser.id, next)
+                  await setCustomerStatus(selectedUser.id, next)
                   notify(`${selectedUser.name}'s account is now ${next.toLowerCase()}.`)
                   setSelectedUser(null)
                 }}
@@ -429,8 +468,8 @@ export default function AdminUsersPage() {
             {selectedUser.status === "Deleted" ? (
               <Button
                 className="h-9 justify-start px-3 text-[12px] font-semibold"
-                onClick={() => {
-                  restoreCustomer(selectedUser.id)
+                onClick={async () => {
+                  await restoreCustomer(selectedUser.id)
                   notify(`${selectedUser.name}'s account restored.`)
                   setSelectedUser(null)
                 }}
@@ -475,8 +514,14 @@ export default function AdminUsersPage() {
             <Field label="Email address" htmlFor="edit-email">
               <Input id="edit-email" type="email" value={editForm.email} onChange={(event) => setEditForm({ ...editForm, email: event.target.value })} />
             </Field>
-            <Field label="Password" htmlFor="edit-password">
-              <Input id="edit-password" value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} />
+            <Field label="New password" htmlFor="edit-password" hint="Leave blank to keep the current password. Setting one emails it to the customer.">
+              <Input
+                id="edit-password"
+                type="text"
+                autoComplete="new-password"
+                value={editForm.password}
+                onChange={(event) => setEditForm({ ...editForm, password: event.target.value })}
+              />
             </Field>
             <div className="grid gap-3.5 sm:grid-cols-2">
               <Field label="Telephone" htmlFor="edit-phone">
@@ -487,6 +532,42 @@ export default function AdminUsersPage() {
               </Field>
             </div>
             <FormError>{editError}</FormError>
+          </form>
+        </Modal>
+      )}
+
+      {passwordTarget && (
+        <Modal
+          title="Reset password"
+          description={`${passwordTarget.name} · ${passwordTarget.email}`}
+          onClose={() => setPasswordTarget(null)}
+          footer={
+            <>
+              <Button variant="outline" className="h-9 px-3 text-[12px]" onClick={() => setPasswordTarget(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" form="reset-password-form" className="h-9 px-3 text-[12px] font-semibold">
+                Save and email
+              </Button>
+            </>
+          }
+        >
+          <form id="reset-password-form" onSubmit={handleResetPassword} className="space-y-3.5">
+            <Field
+              label="New password"
+              htmlFor="reset-password-value"
+              hint="The customer is emailed this password and should change it after signing in."
+            >
+              <Input
+                id="reset-password-value"
+                type="text"
+                autoComplete="new-password"
+                value={passwordValue}
+                onChange={(event) => setPasswordValue(event.target.value)}
+                placeholder="At least 6 characters"
+              />
+            </Field>
+            <FormError>{passwordError}</FormError>
           </form>
         </Modal>
       )}

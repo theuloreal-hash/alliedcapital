@@ -3,11 +3,13 @@ import { fail, ok } from "@/lib/api"
 import { getSession, requireSession } from "@/lib/auth"
 import {
   adjustBalance,
+  changePassword,
   createCustomer,
   deposit,
   generateCot,
   initiateTransfer,
   loadState,
+  resetPassword,
   setCustomerStatus,
   submitCot,
   updateCustomer,
@@ -95,6 +97,18 @@ export async function POST(request: NextRequest) {
 
       case "submitCot":
         result = await submitCot(session, String(payload.transactionId), String(payload.code ?? ""))
+        break
+
+      case "changePassword":
+        result = await changePassword(
+          session,
+          String(payload.currentPassword ?? ""),
+          String(payload.newPassword ?? ""),
+        )
+        break
+
+      case "resetPassword":
+        result = await resetPassword(session, String(payload.userId), String(payload.password ?? ""))
         break
 
       case "generateCot":

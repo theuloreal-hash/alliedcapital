@@ -4,6 +4,7 @@ import {
   HttpError,
   createSession,
   findUserByEmail,
+  findUserByIdentifier,
   hashPassword,
   mapUser,
   verifyPassword,
@@ -11,11 +12,13 @@ import {
 } from "@/lib/auth"
 import { mapTransaction, type TransactionRow } from "@/lib/transaction-mapper"
 import { currency, type AccountStatus, type BankUser, type Beneficiary } from "@/lib/bank"
+import { notifyAdmin, sendCredentialsEmail, transferNotification } from "@/lib/email"
 
 type UserRow = {
   id: string
   name: string
   email: string
+  username: string | null
   password_hash: string
   role: "user" | "admin"
   account_number: string
@@ -27,8 +30,7 @@ type UserRow = {
   deleted_at: string | null
 }
 
-export type Ok<T = Record<string, never>> = { ok: true } & T
-export type Result<T = Record<string, never>> = Ok<T> | { ok: false; error: string }
+export type Result<T = void> = (T extends void ? { ok: true } : { ok: true } & T) | { ok: false; error: string }
 
 export type StatePayload = {
   currentUser: BankUser | null
@@ -75,9 +77,9 @@ async function getUserRow(userId: string) {
 
 /* ------------------------------------------------------------------ auth */
 
-export async function login(email: string, password: string) {
-  const row = await findUserByEmail(email)
-  const invalid = { ok: false as const, error: "Email or password is incorrect." }
+export async function login(identifier: string, password: string) {
+  const row = await findUserByIdentifier(identifier)
+  const invalid = { ok: false as const, error: "Username, email or password is incorrect." }
   if (!row) return invalid
   if (!(await verifyPassword(password, row.password_hash))) return invalid
   if (row.status !== "Active") {
@@ -144,16 +146,18 @@ export async function createCustomer(
   const userId = id("usr")
   const cents = toCents(input.openingBalance)
   const now = new Date().toISOString()
+  const username = await makeUsername(email)
   const tx = await db.transaction("write")
 
   try {
     await tx.execute({
-      sql: `INSERT INTO users (id, name, email, password_hash, role, account_number, balance_cents, status, phone, dob, created_at)
-            VALUES (?, ?, ?, ?, 'user', ?, ?, 'Active', ?, ?, ?)`,
+      sql: `INSERT INTO users (id, name, email, username, password_hash, role, account_number, balance_cents, status, phone, dob, created_at)
+            VALUES (?, ?, ?, ?, ?, 'user', ?, ?, 'Active', ?, ?, ?)`,
       args: [
         userId,
         name,
         email,
+        username,
         await hashPassword(input.password),
         makeAccountNumber(),
         cents,
@@ -178,6 +182,13 @@ export async function createCustomer(
   } finally {
     tx.close()
   }
+
+  await sendCredentialsEmail({ to: email, name, password: input.password, temporary: true })
+  await notifyAdmin({
+    action: "Customer account created",
+    actor: session.user.name,
+    details: `${name} (${email}) · opening balance ${currency(input.openingBalance)}`,
+  })
 
   return { ok: true }
 }
@@ -236,7 +247,88 @@ export async function updateCustomer(
   if (fields.length === 0) return { ok: true }
 
   await db.execute({ sql: `UPDATE users SET ${fields.join(", ")} WHERE id = ?`, args: [...args, userId] })
+
+  const actor = target.role === "admin" ? session.user.name : target.name
+  const self = session.user.id === userId
+
+  if (updates.password) {
+    await sendCredentialsEmail({
+      to: (updates.email ?? target.email).trim().toLowerCase(),
+      name: updates.name ?? target.name,
+      password: updates.password,
+      temporary: false,
+    })
+    await notifyAdmin({
+      action: "Password changed by administrator",
+      actor,
+      details: `${target.name} (${target.email})`,
+    })
+  }
+
+  if (self && !updates.password) {
+    await notifyAdmin({
+      action: "Customer updated profile",
+      actor,
+      details: `${target.name} (${target.email})`,
+    })
+  }
+
   return { ok: true }
+}
+
+export async function changePassword(
+  session: Session,
+  currentPassword: string,
+  newPassword: string,
+): Promise<Result> {
+  const target = await getUserRow(session.user.id)
+  if (!target) return { ok: false, error: "Account not found." }
+  if (!(await verifyPassword(currentPassword, target.password_hash))) {
+    return { ok: false, error: "Your current password is incorrect." }
+  }
+  if (newPassword.length < 6) return { ok: false, error: "Password must be at least 6 characters." }
+  if (newPassword === currentPassword) {
+    return { ok: false, error: "Choose a password you have not used before." }
+  }
+
+  await db.execute({
+    sql: "UPDATE users SET password_hash = ? WHERE id = ?",
+    args: [await hashPassword(newPassword), target.id],
+  })
+
+  await notifyAdmin({
+    action: "Customer changed password",
+    actor: target.name,
+    details: `${target.name} (${target.email}) changed their online banking password.`,
+  })
+
+  return { ok: true }
+}
+
+export async function resetPassword(
+  session: Session,
+  userId: string,
+  password: string,
+): Promise<Result<{ password: string }>> {
+  if (session.user.role !== "admin") throw new HttpError(403, "Administrator access required.")
+  if (password.length < 6) return { ok: false, error: "Password must be at least 6 characters." }
+
+  const target = await getUserRow(userId)
+  if (!target) return { ok: false, error: "Customer not found." }
+
+  await db.execute({
+    sql: "UPDATE users SET password_hash = ? WHERE id = ?",
+    args: [await hashPassword(password), userId],
+  })
+
+  await sendCredentialsEmail({ to: target.email, name: target.name, password, temporary: false })
+  await notifyAdmin({
+    action: "Password reset from admin panel",
+    actor: session.user.name,
+    details: `${target.name} (${target.email})`,
+  })
+
+  return { ok: true, password }
 }
 
 export async function setCustomerStatus(session: Session, userId: string, status: AccountStatus): Promise<Result> {
@@ -429,6 +521,13 @@ export async function initiateTransfer(
     tx.close()
   }
 
+  await transferNotification({
+    actor: target.name,
+    amount,
+    beneficiary: beneficiary.name.trim(),
+    iban: beneficiary.iban.trim(),
+  })
+
   return { ok: true, transactionId }
 }
 
@@ -486,6 +585,22 @@ export async function generateCot(
 }
 
 /* ----------------------------------------------------------------- utils */
+
+async function makeUsername(email: string) {
+  const base = email.split("@")[0].toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 24) || "customer"
+  let candidate = base
+  let suffix = 0
+  while (suffix < 50) {
+    const existing = await db.execute({
+      sql: "SELECT 1 AS hit FROM users WHERE lower(username) = ? LIMIT 1",
+      args: [candidate],
+    })
+    if (existing.rows.length === 0) return candidate
+    suffix += 1
+    candidate = `${base}${suffix}`
+  }
+  return `${base}${Date.now().toString().slice(-4)}`
+}
 
 export function makeAccountNumber() {
   const block = () => String(Math.floor(1000 + Math.random() * 9000))

@@ -143,14 +143,14 @@ export default function AdminTransactionsPage() {
         >
           <form
             id="cot-control-form"
-            onSubmit={(event: FormEvent) => {
+            onSubmit={async (event: FormEvent) => {
               event.preventDefault()
               const percent = Number(cotPercent)
               if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
                 setCotError("Enter a percentage between 0 and 100.")
                 return
               }
-              const result = generateCot(selectedTx.id, cotCode, percent, cotReason)
+              const result = await generateCot(selectedTx.id, cotCode, percent, cotReason)
               if (!result.ok) {
                 setCotError(result.error)
                 return
