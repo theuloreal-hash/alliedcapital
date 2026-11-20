@@ -242,7 +242,7 @@ export function TransferModal({
                   <span className="font-bold tabular-nums text-emerald-700">{progress}%</span>
                 </div>
                 <div
-                  className="h-4 w-full overflow-hidden rounded-full bg-emerald-100 shadow-inner"
+                  className="h-7 w-full overflow-hidden rounded-full bg-emerald-100 shadow-inner"
                   role="progressbar"
                   aria-label="Transfer progress"
                   aria-valuemin={0}
@@ -254,9 +254,12 @@ export function TransferModal({
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                   />
                 </div>
-                <p className="text-[12px] leading-relaxed text-emerald-900">
-                  {reason || "Your transfer is being processed. We will update you when the next step is ready."}
-                </p>
+                <div className="rounded-lg border border-emerald-200 bg-white/80 px-3 py-2.5">
+                  <p className="text-[10px] font-bold tracking-wide text-emerald-700 uppercase">Transfer update</p>
+                  <p className="mt-1 text-[13px] font-bold leading-relaxed text-emerald-950">
+                    {reason || "Your transfer is being processed. We will update you when the next step is ready."}
+                  </p>
+                </div>
               </div>
               <form id="cot-modal-form" onSubmit={handleCot} className="space-y-3">
                 <Field label="COT code" htmlFor="tm-cot">
