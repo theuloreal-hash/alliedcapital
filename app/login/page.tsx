@@ -7,7 +7,7 @@ import { DEMO_ADMIN, DEMO_CUSTOMER } from "@/lib/bank"
 import { useBank } from "@/lib/bank-store"
 
 export default function LoginPage() {
-  const { login, ready, currentUser } = useBank()
+  const { login, ready, currentUser, users } = useBank()
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -26,7 +26,12 @@ export default function LoginPage() {
     const user = login(email, password)
     setSubmitting(false)
     if (!user) {
-      setError("Email or password is incorrect.")
+      const existing = users.find((row) => row.email.toLowerCase() === email.trim().toLowerCase())
+      setError(
+        existing && existing.password === password
+          ? "This account is not active. Please contact the bank."
+          : "Email or password is incorrect.",
+      )
       return
     }
     router.replace(user.role === "admin" ? "/admin" : "/dashboard")

@@ -2,12 +2,11 @@
 
 import { useMemo, useState } from "react"
 import { TransferModal } from "@/components/bank/transfer-modal"
-import Link from "next/link"
 import { ArrowUpRight, Search } from "lucide-react"
 import { Card, PageHeader, PanelHeading } from "@/components/bank/ui"
 import { Select, Input } from "@/components/bank/form"
 import { TransactionTable } from "@/components/bank/transaction-table"
-import { TX_TYPE_LABELS, currency, sumAmounts, type TxType } from "@/lib/bank"
+import { TX_TYPE_LABELS, currency, sumAmounts, type Transaction, type TxType } from "@/lib/bank"
 import { useBank } from "@/lib/bank-store"
 
 const linkButton =
@@ -18,6 +17,7 @@ export default function TransactionsPage() {
   const [query, setQuery] = useState("")
   const [type, setType] = useState<"all" | TxType>("all")
   const [transferOpen, setTransferOpen] = useState(false)
+  const [resumeTx, setResumeTx] = useState<Transaction | null>(null)
 
   const rows = useMemo(() => (currentUser ? userTransactions(currentUser.id) : []), [currentUser, userTransactions])
 
@@ -115,11 +115,22 @@ export default function TransactionsPage() {
           <TransactionTable
             rows={filtered}
             empty={rows.length === 0 ? "No transactions yet. Make a deposit to get started." : "No transactions match your filters."}
+            onResumeTransfer={(tx) => {
+              setResumeTx(tx)
+              setTransferOpen(true)
+            }}
           />
         </div>
       </Card>
 
-      <TransferModal open={transferOpen} onClose={() => setTransferOpen(false)} />
+      <TransferModal
+        open={transferOpen}
+        resume={resumeTx}
+        onClose={() => {
+          setTransferOpen(false)
+          setResumeTx(null)
+        }}
+      />
     </>
   )
 }

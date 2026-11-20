@@ -56,11 +56,13 @@ export function TransactionTable({
   users,
   empty = "No transactions to show yet.",
   onManageCot,
+  onResumeTransfer,
 }: {
   rows: Transaction[]
   users?: BankUser[]
   empty?: string
   onManageCot?: (transaction: Transaction) => void
+  onResumeTransfer?: (transaction: Transaction) => void
 }) {
   if (rows.length === 0) return <EmptyState>{empty}</EmptyState>
 
@@ -77,6 +79,7 @@ export function TransactionTable({
             <th className="px-4 py-2.5 text-[10px] font-semibold tracking-wide text-[#a0a4a5] uppercase">Status</th>
             <th className="px-4 py-2.5 text-right text-[10px] font-semibold tracking-wide text-[#a0a4a5] uppercase sm:px-5">Amount</th>
             {onManageCot && <th className="px-4 py-2.5 text-right text-[10px] font-semibold tracking-wide text-[#a0a4a5] uppercase sm:px-5">COT</th>}
+            {onResumeTransfer && <th className="px-4 py-2.5 text-right text-[10px] font-semibold tracking-wide text-[#a0a4a5] uppercase sm:px-5">Transfer</th>}
           </tr>
         </thead>
         <tbody>
@@ -111,13 +114,28 @@ export function TransactionTable({
               </td>
               {onManageCot && (
                 <td className="px-4 py-3 text-right sm:px-5">
-                  <button
-                    type="button"
-                    onClick={() => onManageCot(row)}
-                    className="h-7 border border-[#d7d7d7] bg-white px-2 text-[10px] text-[#555555]"
-                  >
-                    {row.cotCode ? "Edit COT" : "Generate COT"}
-                  </button>
+                  {row.type === "transfer" ? (
+                    <button
+                      type="button"
+                      onClick={() => onManageCot(row)}
+                      className="h-7 border border-[#d7d7d7] bg-white px-2 text-[10px] text-[#555555]"
+                    >
+                      {row.cotCode ? "Edit COT" : "Generate COT"}
+                    </button>
+                  ) : null}
+                </td>
+              )}
+              {onResumeTransfer && (
+                <td className="px-4 py-3 text-right sm:px-5">
+                  {row.type === "transfer" && row.status !== "Completed" ? (
+                    <button
+                      type="button"
+                      onClick={() => onResumeTransfer(row)}
+                      className="h-7 border border-[#d7d7d7] bg-white px-2 text-[10px] text-[#555555]"
+                    >
+                      Continue
+                    </button>
+                  ) : null}
                 </td>
               )}
             </tr>

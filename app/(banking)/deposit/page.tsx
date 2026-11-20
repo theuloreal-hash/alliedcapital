@@ -1,11 +1,11 @@
 "use client"
 
 import { useMemo, useState, type FormEvent } from "react"
-import Link from "next/link"
 import { ArrowUpRight, BadgeCheck, Info, Wallet } from "lucide-react"
 import { Card, PageHeader, PanelHeading } from "@/components/bank/ui"
 import { Field, FormError, Input, Select } from "@/components/bank/form"
 import { Toast, useToast } from "@/components/bank/toast"
+import { TransferModal } from "@/components/bank/transfer-modal"
 import { TransactionTable } from "@/components/bank/transaction-table"
 import { Button } from "@/components/ui/button"
 import { currency, isThisMonth } from "@/lib/bank"
@@ -25,6 +25,7 @@ export default function DepositPage() {
   const [source, setSource] = useState(SOURCES[0])
   const [reference, setReference] = useState("")
   const [error, setError] = useState("")
+  const [transferOpen, setTransferOpen] = useState(false)
 
   const rows = useMemo(() => (currentUser ? userTransactions(currentUser.id) : []), [currentUser, userTransactions])
   const deposits = rows.filter((row) => row.type === "deposit")
@@ -58,12 +59,13 @@ export default function DepositPage() {
         title="Deposit funds"
         description="Move money into your Capital Bank account from an external source."
         actions={
-          <Link
-            href="/transfer"
+          <button
+            type="button"
+            onClick={() => setTransferOpen(true)}
             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-3 text-[11.5px] font-semibold text-[#515d65] transition hover:bg-muted"
           >
             <ArrowUpRight className="size-3.5" /> Transfer money
-          </Link>
+          </button>
         }
       />
 
@@ -175,6 +177,7 @@ export default function DepositPage() {
         </div>
       </Card>
 
+      <TransferModal open={transferOpen} onClose={() => setTransferOpen(false)} />
       <Toast message={message} tone={tone} />
     </>
   )

@@ -124,6 +124,7 @@ export default function AdminTransactionsPage() {
           />
         </div>
       </Card>
+
       {selectedTx && (
         <Modal
           title="COT control"
@@ -182,7 +183,6 @@ export default function AdminTransactionsPage() {
           </form>
         </Modal>
       )}
-
     </>
   )
 }

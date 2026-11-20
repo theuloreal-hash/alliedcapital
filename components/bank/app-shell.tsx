@@ -27,7 +27,6 @@ const NAV = {
     { label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
     { label: "Profile", href: "/profile", icon: User },
     { label: "Deposit funds", href: "/deposit", icon: ArrowDownToLine },
-    { label: "Transfer money", href: "/transfer", icon: ArrowUpRight },
   ],
   admin: [
     { label: "Overview", href: "/admin", icon: LayoutDashboard },

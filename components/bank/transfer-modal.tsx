@@ -1,20 +1,27 @@
 "use client"
 
 import { useEffect, useState, type FormEvent } from "react"
-import Link from "next/link"
-import { ArrowLeftRight, Landmark, LockKeyhole, ShieldCheck } from "lucide-react"
+import { ArrowLeftRight, Landmark, ShieldCheck } from "lucide-react"
 import { Modal } from "@/components/bank/modal"
 import { useToast } from "@/components/bank/toast"
 import { Field, FieldHint, FormError, Input } from "@/components/bank/form"
 import { Button } from "@/components/ui/button"
-import { DEFAULT_BENEFICIARY, currency, type Beneficiary } from "@/lib/bank"
+import { DEFAULT_BENEFICIARY, currency, type Beneficiary, type Transaction } from "@/lib/bank"
 import { useBank } from "@/lib/bank-store"
 
 function updateBeneficiary(current: Beneficiary, field: keyof Beneficiary, value: string) {
   return { ...current, [field]: value }
 }
 
-export function TransferModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function TransferModal({
+  open,
+  onClose,
+  resume,
+}: {
+  open: boolean
+  onClose: () => void
+  resume?: Transaction | null
+}) {
   const { currentUser, initiateTransfer, submitCot } = useBank()
   const { notify } = useToast()
 
@@ -31,17 +38,27 @@ export function TransferModal({ open, onClose }: { open: boolean; onClose: () =>
 
   useEffect(() => {
     if (!open) return
-    setBeneficiary({ ...DEFAULT_BENEFICIARY })
-    setAmount("")
-    setNote("")
+    if (resume) {
+      setBeneficiary(resume.beneficiary ?? { ...DEFAULT_BENEFICIARY })
+      setAmount(String(resume.amount))
+      setNote(resume.description)
+      setTxId(resume.id)
+      setProgress(resume.cotPercent ?? 0)
+      setReason(resume.cotReason ?? "")
+      setCompleted(resume.status === "Completed")
+    } else {
+      setBeneficiary({ ...DEFAULT_BENEFICIARY })
+      setAmount("")
+      setNote("")
+      setTxId(null)
+      setProgress(0)
+      setReason("")
+      setCompleted(false)
+    }
     setError("")
-    setTxId(null)
     setCotInput("")
     setCotError("")
-    setProgress(0)
-    setReason("")
-    setCompleted(false)
-  }, [open])
+  }, [open, resume])
 
   if (!open || !currentUser) return null
 

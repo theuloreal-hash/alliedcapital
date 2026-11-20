@@ -41,7 +41,7 @@ export default function DashboardPage() {
           <span>Status</span>
           <span className={user.status === "Active" ? "text-[#28a745]" : "text-[#b05b4f]"}>{user.status}</span>
           <span>Telephone</span>
-          <span className="text-[#333333]">{user.phone || "078943578224"}</span>
+          <span className="text-[#333333]">{user.phone || "-"}</span>
           <span>Date of birth</span>
           <span className="text-[#333333]">{user.dob || "-"}</span>
         </div>

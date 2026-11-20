@@ -2,17 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
-import {
-  Ban,
-  CircleCheck,
-  Edit,
-  MoreHorizontal,
-  Search,
-  ShieldCheck,
-  Trash2,
-  UserPlus,
-  Users,
-} from "lucide-react"
+import { MoreHorizontal, Search, ShieldCheck, UserPlus, Users } from "lucide-react"
 import { Avatar, Card, PageHeader, PanelHeading, StatusPill } from "@/components/bank/ui"
 import { Field, FieldHint, FormError, Input, Select } from "@/components/bank/form"
 import { Modal } from "@/components/bank/modal"
@@ -32,7 +22,7 @@ export default function AdminUsersPage() {
   const { message, tone, notify } = useToast()
 
   const [query, setQuery] = useState("")
-  const [status, setStatus] = useState<"all" | "Active" | "Suspended">("all")
+  const [status, setStatus] = useState<"all" | "Active" | "Suspended" | "Deleted">("all")
   const [createOpen, setCreateOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [formError, setFormError] = useState("")
@@ -110,7 +100,7 @@ export default function AdminUsersPage() {
   function handleDelete() {
     if (!deleteTarget) return
     deleteCustomer(deleteTarget.id)
-    notify(`${deleteTarget.name} and their transactions were removed.`)
+    notify(`${deleteTarget.name}'s account was deleted. You can restore it later.`)
     setDeleteTarget(null)
   }
 
@@ -181,12 +171,13 @@ export default function AdminUsersPage() {
           <Select
             aria-label="Filter by status"
             value={status}
-            onChange={(event) => setStatus(event.target.value as "all" | "Active" | "Suspended")}
+            onChange={(event) => setStatus(event.target.value as "all" | "Active" | "Suspended" | "Deleted")}
             className="h-9 w-full text-[12px] sm:w-[160px]"
           >
             <option value="all">All statuses</option>
             <option value="Active">Active</option>
             <option value="Suspended">Suspended</option>
+            <option value="Deleted">Deleted</option>
           </Select>
         </div>
 
@@ -376,7 +367,7 @@ export default function AdminUsersPage() {
       {deleteTarget && (
         <Modal
           title="Delete customer"
-          description="This cannot be undone."
+          description="The account is disabled and can be restored later."
           onClose={() => setDeleteTarget(null)}
           footer={
             <>
@@ -390,8 +381,9 @@ export default function AdminUsersPage() {
           }
         >
           <p className="text-[12px] leading-relaxed text-[#5b656d]">
-            Delete <strong>{deleteTarget.name}</strong> ({deleteTarget.email})? Their profile and{" "}
-            {userTransactions(deleteTarget.id).length} transaction(s) will be permanently removed from this demo.
+            Delete <strong>{deleteTarget.name}</strong> ({deleteTarget.email})? Their account is disabled and they
+            cannot sign in. Their {userTransactions(deleteTarget.id).length} transaction(s) are kept and the account
+            can be restored from the actions menu.
           </p>
         </Modal>
       )}
@@ -420,18 +412,20 @@ export default function AdminUsersPage() {
             <Button variant="outline" className="h-9 justify-start px-3 text-[12px]" onClick={() => handleImpersonate(selectedUser)}>
               Impersonate
             </Button>
-            <Button
-              variant="outline"
-              className="h-9 justify-start px-3 text-[12px]"
-              onClick={() => {
-                const next = selectedUser.status === "Active" ? "Suspended" : "Active"
-                setCustomerStatus(selectedUser.id, next)
-                notify(`${selectedUser.name}'s account is now ${next.toLowerCase()}.`)
-                setSelectedUser(null)
-              }}
-            >
-              {selectedUser.status === "Active" ? "Disable account" : "Enable account"}
-            </Button>
+            {selectedUser.status !== "Deleted" && (
+              <Button
+                variant="outline"
+                className="h-9 justify-start px-3 text-[12px]"
+                onClick={() => {
+                  const next = selectedUser.status === "Active" ? "Suspended" : "Active"
+                  setCustomerStatus(selectedUser.id, next)
+                  notify(`${selectedUser.name}'s account is now ${next.toLowerCase()}.`)
+                  setSelectedUser(null)
+                }}
+              >
+                {selectedUser.status === "Active" ? "Disable account" : "Enable account"}
+              </Button>
+            )}
             {selectedUser.status === "Deleted" ? (
               <Button
                 className="h-9 justify-start px-3 text-[12px] font-semibold"

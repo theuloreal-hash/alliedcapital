@@ -25,3 +25,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# local libSQL database used when TURSO_DATABASE_URL is unset
+local.db
+local.db-*
+
+!.env.example

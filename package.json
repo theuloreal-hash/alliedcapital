@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "db:seed": "node scripts/db-seed.mjs",
+    "db:reset": "node scripts/db-seed.mjs --reset"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
+    "@libsql/client": "^0.18.0",
     "@vercel/analytics": "1.6.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
