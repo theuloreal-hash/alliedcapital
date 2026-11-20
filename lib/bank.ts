@@ -45,10 +45,10 @@ export type BankUser = {
 }
 
 export const DEFAULT_BENEFICIARY: Beneficiary = {
-  name: "IMAFIDON HELEN",
-  bank: "Credit Agricole Bank, France",
-  iban: "FR76 1390 6000 8000 2047 7390 496",
-  bic: "AGRIFRPP839",
+  name: "",
+  bank: "",
+  iban: "",
+  bic: "",
 }
 
 

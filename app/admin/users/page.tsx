@@ -7,6 +7,8 @@ import { Avatar, Card, PageHeader, PanelHeading, StatusPill } from "@/components
 import { Field, FieldHint, FormError, Input, Select } from "@/components/bank/form"
 import { Modal } from "@/components/bank/modal"
 import { Toast, useToast } from "@/components/bank/toast"
+import { AsyncButton } from "@/components/bank/async-button"
+import { usePendingAction } from "@/components/bank/use-pending-action"
 import { Button } from "@/components/ui/button"
 import { currency, formatDate, type BankUser } from "@/lib/bank"
 import { useBank } from "@/lib/bank-store"
@@ -20,6 +22,7 @@ export default function AdminUsersPage() {
   const customers = allUsers.filter((user) => user.role === "user")
   const router = useRouter()
   const { message, tone, notify } = useToast()
+  const { pending, run } = usePendingAction()
 
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<"all" | "Active" | "Suspended" | "Deleted">("all")
@@ -60,20 +63,22 @@ export default function AdminUsersPage() {
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault()
-    const opening = Number(form.openingBalance || 0)
-    const result = await createCustomer({
-      name: form.name,
-      email: form.email,
-      password: form.password,
-      openingBalance: Number.isFinite(opening) ? opening : Number.NaN,
+    await run(async () => {
+      const opening = Number(form.openingBalance || 0)
+      const result = await createCustomer({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        openingBalance: Number.isFinite(opening) ? opening : Number.NaN,
+      })
+      if (!result.ok) {
+        setFormError(result.error)
+        return
+      }
+      notify(`Customer created. Sign-in details emailed to ${result.email}.`)
+      setCreateOpen(false)
+      setForm(emptyForm)
     })
-    if (!result.ok) {
-      setFormError(result.error)
-      return
-    }
-    notify(`Customer created. Sign-in details emailed to ${result.email}.`)
-    setCreateOpen(false)
-    setForm(emptyForm)
   }
 
   function openAdjust(user: BankUser, direction: "in" | "out") {
@@ -86,28 +91,32 @@ export default function AdminUsersPage() {
   async function handleAdjust(event: FormEvent) {
     event.preventDefault()
     if (!adjust) return
-    const value = Number(adjustAmount)
-    const result = await adjustBalance(
-      adjust.user.id,
-      value,
-      adjust.direction,
-      adjustNote || (adjust.direction === "in" ? "Account credit" : "Account debit"),
-    )
-    if (!result.ok) {
-      setAdjustError(result.error)
-      return
-    }
-    notify(
-      `${adjust.direction === "in" ? "Credited" : "Debited"} ${currency(value)} ${adjust.direction === "in" ? "to" : "from"} ${adjust.user.name}'s account.`,
-    )
-    setAdjust(null)
+    await run(async () => {
+      const value = Number(adjustAmount)
+      const result = await adjustBalance(
+        adjust.user.id,
+        value,
+        adjust.direction,
+        adjustNote || (adjust.direction === "in" ? "Account credit" : "Account debit"),
+      )
+      if (!result.ok) {
+        setAdjustError(result.error)
+        return
+      }
+      notify(
+        `${adjust.direction === "in" ? "Credited" : "Debited"} ${currency(value)} ${adjust.direction === "in" ? "to" : "from"} ${adjust.user.name}'s account.`,
+      )
+      setAdjust(null)
+    })
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
-    await deleteCustomer(deleteTarget.id)
-    notify(`${deleteTarget.name}'s account was deleted. You can restore it later.`)
-    setDeleteTarget(null)
+    await run(async () => {
+      await deleteCustomer(deleteTarget.id)
+      notify(`${deleteTarget.name}'s account was deleted. You can restore it later.`)
+      setDeleteTarget(null)
+    })
   }
 
   function openEdit(user: BankUser) {
@@ -126,44 +135,50 @@ export default function AdminUsersPage() {
   async function handleEdit(event: FormEvent) {
     event.preventDefault()
     if (!editTarget) return
-    const result = await updateCustomer(editTarget.id, {
-      name: editForm.name.trim(),
-      email: editForm.email.trim(),
-      ...(editForm.password ? { password: editForm.password } : {}),
-      phone: editForm.phone.trim(),
-      dob: editForm.dob.trim(),
+    await run(async () => {
+      const result = await updateCustomer(editTarget.id, {
+        name: editForm.name.trim(),
+        email: editForm.email.trim(),
+        ...(editForm.password ? { password: editForm.password } : {}),
+        phone: editForm.phone.trim(),
+        dob: editForm.dob.trim(),
+      })
+      if (!result.ok) {
+        setEditError(result.error)
+        return
+      }
+      notify(
+        editForm.password
+          ? `${editForm.name.trim()}'s profile updated and the new password emailed to them.`
+          : `${editForm.name.trim()}'s profile updated.`,
+      )
+      setEditTarget(null)
     })
-    if (!result.ok) {
-      setEditError(result.error)
-      return
-    }
-    notify(
-      editForm.password
-        ? `${editForm.name.trim()}'s profile updated and the new password emailed to them.`
-        : `${editForm.name.trim()}'s profile updated.`,
-    )
-    setEditTarget(null)
   }
 
   async function handleResetPassword(event: FormEvent) {
     event.preventDefault()
     if (!passwordTarget) return
-    const result = await resetPassword(passwordTarget.id, passwordValue)
-    if (!result.ok) {
-      setPasswordError(result.error)
-      return
-    }
-    notify(`New password emailed to ${passwordTarget.email}.`)
-    setPasswordTarget(null)
-    setPasswordValue("")
-    setPasswordError("")
+    await run(async () => {
+      const result = await resetPassword(passwordTarget.id, passwordValue)
+      if (!result.ok) {
+        setPasswordError(result.error)
+        return
+      }
+      notify(`New password emailed to ${passwordTarget.email}.`)
+      setPasswordTarget(null)
+      setPasswordValue("")
+      setPasswordError("")
+    })
   }
 
   async function handleImpersonate(user: BankUser) {
-    await impersonateCustomer(user.id)
-    setSelectedUser(null)
-    notify(`Now viewing as ${user.name}.`)
-    router.push("/dashboard")
+    await run(async () => {
+      await impersonateCustomer(user.id)
+      setSelectedUser(null)
+      notify(`Now viewing as ${user.name}.`)
+      router.push("/dashboard")
+    })
   }
 
   return (
@@ -278,9 +293,9 @@ export default function AdminUsersPage() {
               <Button variant="outline" className="h-9 px-3 text-[12px]" onClick={() => setCreateOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" form="create-customer-form" className="h-9 px-3 text-[12px] font-semibold">
+              <AsyncButton type="submit" form="create-customer-form" pending={pending} pendingText="Creating…" className="h-9 px-3 text-[12px] font-semibold">
                 Create customer
-              </Button>
+              </AsyncButton>
             </>
           }
         >
@@ -289,7 +304,7 @@ export default function AdminUsersPage() {
               <Input
                 id="new-name"
                 autoFocus
-                placeholder="e.g. Imafidon Helen"
+                placeholder="Enter customer name"
                 value={form.name}
                 onChange={(event) => setForm({ ...form, name: event.target.value })}
               />
@@ -346,13 +361,15 @@ export default function AdminUsersPage() {
               <Button variant="outline" className="h-9 px-3 text-[12px]" onClick={() => setAdjust(null)}>
                 Cancel
               </Button>
-              <Button
+              <AsyncButton
                 type="submit"
                 form="adjust-form"
+                pending={pending}
+                pendingText="Processing…"
                 className="h-9 px-3 text-[12px] font-semibold"
               >
                 {adjust.direction === "in" ? "Add funds" : "Remove funds"}
-              </Button>
+              </AsyncButton>
             </>
           }
         >
@@ -401,9 +418,9 @@ export default function AdminUsersPage() {
               <Button variant="outline" className="h-9 px-3 text-[12px]" onClick={() => setDeleteTarget(null)}>
                 Cancel
               </Button>
-              <Button className="h-9 bg-[#b05b4f] px-3 text-[12px] font-semibold text-white hover:bg-[#9d4c41]" onClick={handleDelete}>
+              <AsyncButton pending={pending} pendingText="Deleting…" className="h-9 bg-[#b05b4f] px-3 text-[12px] font-semibold text-white hover:bg-[#9d4c41]" onClick={handleDelete}>
                 Delete customer
-              </Button>
+              </AsyncButton>
             </>
           }
         >
@@ -448,34 +465,38 @@ export default function AdminUsersPage() {
             >
               Reset password
             </Button>
-            <Button variant="outline" className="h-9 justify-start px-3 text-[12px]" onClick={() => handleImpersonate(selectedUser)}>
+            <AsyncButton variant="outline" className="h-9 justify-start px-3 text-[12px]" pending={pending} pendingText="Opening…" onClick={() => handleImpersonate(selectedUser)}>
               Impersonate
-            </Button>
+            </AsyncButton>
             {selectedUser.status !== "Deleted" && (
-              <Button
+              <AsyncButton
                 variant="outline"
                 className="h-9 justify-start px-3 text-[12px]"
-                onClick={async () => {
+                pending={pending}
+                pendingText="Updating…"
+                onClick={() => run(async () => {
                   const next = selectedUser.status === "Active" ? "Suspended" : "Active"
                   await setCustomerStatus(selectedUser.id, next)
                   notify(`${selectedUser.name}'s account is now ${next.toLowerCase()}.`)
                   setSelectedUser(null)
-                }}
+                })}
               >
                 {selectedUser.status === "Active" ? "Disable account" : "Enable account"}
-              </Button>
+              </AsyncButton>
             )}
             {selectedUser.status === "Deleted" ? (
-              <Button
+              <AsyncButton
                 className="h-9 justify-start px-3 text-[12px] font-semibold"
-                onClick={async () => {
+                pending={pending}
+                pendingText="Restoring…"
+                onClick={() => run(async () => {
                   await restoreCustomer(selectedUser.id)
                   notify(`${selectedUser.name}'s account restored.`)
                   setSelectedUser(null)
-                }}
+                })}
               >
                 Restore account
-              </Button>
+              </AsyncButton>
             ) : (
               <Button
                 className="h-9 justify-start bg-[#b05b4f] px-3 text-[12px] font-semibold text-white hover:bg-[#9d4c41]"
@@ -501,9 +522,9 @@ export default function AdminUsersPage() {
               <Button variant="outline" className="h-9 px-3 text-[12px]" onClick={() => setEditTarget(null)}>
                 Cancel
               </Button>
-              <Button type="submit" form="edit-customer-form" className="h-9 px-3 text-[12px] font-semibold">
+              <AsyncButton type="submit" form="edit-customer-form" pending={pending} pendingText="Saving…" className="h-9 px-3 text-[12px] font-semibold">
                 Save changes
-              </Button>
+              </AsyncButton>
             </>
           }
         >
@@ -546,9 +567,9 @@ export default function AdminUsersPage() {
               <Button variant="outline" className="h-9 px-3 text-[12px]" onClick={() => setPasswordTarget(null)}>
                 Cancel
               </Button>
-              <Button type="submit" form="reset-password-form" className="h-9 px-3 text-[12px] font-semibold">
+              <AsyncButton type="submit" form="reset-password-form" pending={pending} pendingText="Saving…" className="h-9 px-3 text-[12px] font-semibold">
                 Save and email
-              </Button>
+              </AsyncButton>
             </>
           }
         >

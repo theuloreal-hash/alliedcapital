@@ -5,6 +5,8 @@ import Link from "next/link"
 import { Search, Users } from "lucide-react"
 import { Card, PageHeader, PanelHeading } from "@/components/bank/ui"
 import { Modal } from "@/components/bank/modal"
+import { AsyncButton } from "@/components/bank/async-button"
+import { usePendingAction } from "@/components/bank/use-pending-action"
 import { Button } from "@/components/ui/button"
 import { Field, FormError, Input, Select } from "@/components/bank/form"
 import { TransactionTable } from "@/components/bank/transaction-table"
@@ -13,6 +15,7 @@ import { useBank } from "@/lib/bank-store"
 
 export default function AdminTransactionsPage() {
   const { transactions, users: allUsers, generateCot } = useBank()
+  const { pending, run } = usePendingAction()
   const customers = allUsers.filter((user) => user.role === "user")
   const [query, setQuery] = useState("")
   const [type, setType] = useState<"all" | TxType>("all")
@@ -135,9 +138,9 @@ export default function AdminTransactionsPage() {
               <Button variant="outline" className="h-9 px-3 text-[12px]" onClick={() => setSelectedTx(null)}>
                 Cancel
               </Button>
-              <Button type="submit" form="cot-control-form" className="h-9 px-3 text-[12px] font-semibold">
+              <AsyncButton type="submit" form="cot-control-form" pending={pending} pendingText="Saving…" className="h-9 px-3 text-[12px] font-semibold">
                 Save COT
-              </Button>
+              </AsyncButton>
             </>
           }
         >
@@ -145,17 +148,19 @@ export default function AdminTransactionsPage() {
             id="cot-control-form"
             onSubmit={async (event: FormEvent) => {
               event.preventDefault()
-              const percent = Number(cotPercent)
-              if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
-                setCotError("Enter a percentage between 0 and 100.")
-                return
-              }
-              const result = await generateCot(selectedTx.id, cotCode, percent, cotReason)
-              if (!result.ok) {
-                setCotError(result.error)
-                return
-              }
-              setSelectedTx(null)
+              await run(async () => {
+                const percent = Number(cotPercent)
+                if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+                  setCotError("Enter a percentage between 0 and 100.")
+                  return
+                }
+                const result = await generateCot(selectedTx.id, cotCode, percent, cotReason)
+                if (!result.ok) {
+                  setCotError(result.error)
+                  return
+                }
+                setSelectedTx(null)
+              })
             }}
             className="space-y-3.5"
           >

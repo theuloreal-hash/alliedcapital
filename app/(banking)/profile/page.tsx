@@ -6,9 +6,12 @@ import { Card, PageHeader } from "@/components/bank/ui"
 import { Field, FormError, Input } from "@/components/bank/form"
 import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/bank/ui"
+import { AsyncButton } from "@/components/bank/async-button"
+import { usePendingAction } from "@/components/bank/use-pending-action"
 
 export default function ProfilePage() {
   const { currentUser, updateCustomer, changePassword } = useBank()
+  const { pending, run } = usePendingAction()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
     name: currentUser?.name ?? "",
@@ -40,36 +43,40 @@ export default function ProfilePage() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setError("")
-    const result = await updateCustomer(user!.id, {
-      name: form.name.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      dob: form.dob.trim(),
+    await run(async () => {
+      setError("")
+      const result = await updateCustomer(user!.id, {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        dob: form.dob.trim(),
+      })
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      setSuccess("Profile updated. The bank has been notified.")
+      setEditing(false)
     })
-    if (!result.ok) {
-      setError(result.error)
-      return
-    }
-    setSuccess("Profile updated. The bank has been notified.")
-    setEditing(false)
   }
 
   async function handlePassword(event: FormEvent) {
     event.preventDefault()
-    setPasswordError("")
-    setPasswordSuccess("")
     if (passwordForm.next !== passwordForm.confirm) {
       setPasswordError("The new passwords do not match.")
       return
     }
-    const result = await changePassword(passwordForm.current, passwordForm.next)
-    if (!result.ok) {
-      setPasswordError(result.error)
-      return
-    }
-    setPasswordSuccess("Password changed. Use the new password next time you sign in.")
-    setPasswordForm({ current: "", next: "", confirm: "" })
+    await run(async () => {
+      setPasswordError("")
+      setPasswordSuccess("")
+      const result = await changePassword(passwordForm.current, passwordForm.next)
+      if (!result.ok) {
+        setPasswordError(result.error)
+        return
+      }
+      setPasswordSuccess("Password changed. Use the new password next time you sign in.")
+      setPasswordForm({ current: "", next: "", confirm: "" })
+    })
   }
 
   return (
@@ -110,9 +117,9 @@ export default function ProfilePage() {
                 <Button type="button" variant="outline" className="h-9 px-3 text-[12px]" onClick={() => setEditing(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" className="h-9 px-3 text-[12px] font-semibold">
+                <AsyncButton type="submit" pending={pending} pendingText="Saving…" className="h-9 px-3 text-[12px] font-semibold">
                   Save changes
-                </Button>
+                </AsyncButton>
               </div>
             </form>
           ) : (
@@ -171,9 +178,9 @@ export default function ProfilePage() {
           </div>
           <FormError>{passwordError}</FormError>
           {passwordSuccess && <p className="text-[11px] text-[#59866b]">{passwordSuccess}</p>}
-          <Button type="submit" className="h-9 px-3 text-[12px] font-semibold">
+          <AsyncButton type="submit" pending={pending} pendingText="Updating…" className="h-9 px-3 text-[12px] font-semibold">
             Update password
-          </Button>
+          </AsyncButton>
         </form>
       </Card>
     </>

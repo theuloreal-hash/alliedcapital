@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, type FormEvent } from "react"
+import { usePendingAction } from "@/components/bank/use-pending-action"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -12,7 +13,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
-  const [submitting, setSubmitting] = useState(false)
+  const { pending, run } = usePendingAction()
 
   useEffect(() => {
     if (!ready || !currentUser) return
@@ -21,15 +22,15 @@ export default function LoginPage() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setError("")
-    setSubmitting(true)
-    const result = await login(email, password)
-    setSubmitting(false)
-    if (!result.ok) {
-      setError(result.error)
-      return
-    }
-    router.replace(result.user.role === "admin" ? "/admin" : "/dashboard")
+    await run(async () => {
+      setError("")
+      const result = await login(email, password)
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      router.replace(result.user.role === "admin" ? "/admin" : "/dashboard")
+    })
   }
 
   return (
@@ -79,10 +80,11 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={pending}
+            aria-busy={pending}
             className="h-9 w-full bg-[#ddaa3f] text-[12px] font-medium text-white hover:bg-[#c99735] disabled:opacity-60"
           >
-            {submitting ? "Signing in…" : "Sign in"}
+            {pending ? "Signing in…" : "Sign in"}
           </button>
         </form>
 

@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   ChevronRight,
   LayoutDashboard,
+  LoaderCircle,
   LogOut,
   Menu,
   ShieldCheck,
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils"
 import { useBank } from "@/lib/bank-store"
 import { Brand } from "@/components/bank/brand"
 import { Avatar } from "@/components/bank/ui"
+import { usePendingAction } from "@/components/bank/use-pending-action"
 
 const NAV = {
   user: [
@@ -37,6 +39,7 @@ export function AppShell({ role, children }: { role: "user" | "admin"; children:
   const pathname = usePathname()
   const router = useRouter()
   const { currentUser, customers, logout, impersonatorId, stopImpersonation } = useBank()
+  const { pending, run } = usePendingAction()
   const [open, setOpen] = useState(false)
 
   const nav = NAV[role]
@@ -139,12 +142,14 @@ export function AppShell({ role, children }: { role: "user" | "admin"; children:
           </div>
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => run(handleLogout)}
             aria-label="Sign out"
-            title="Sign out"
-            className="grid size-8 place-items-center rounded-lg text-[#8a9196] transition hover:bg-muted hover:text-[#b05b4f]"
+            title={pending ? "Signing out…" : "Sign out"}
+            disabled={pending}
+            aria-busy={pending}
+            className="grid size-8 place-items-center rounded-lg text-[#8a9196] transition hover:bg-muted hover:text-[#b05b4f] disabled:cursor-wait disabled:opacity-60"
           >
-            <LogOut className="size-4" />
+            {pending ? <LoaderCircle className="size-4 animate-spin" /> : <LogOut className="size-4" />}
           </button>
         </div>
       </aside>
@@ -153,8 +158,9 @@ export function AppShell({ role, children }: { role: "user" | "admin"; children:
         {impersonatorId && (
           <div className="flex items-center justify-between gap-3 bg-[#fbf4e7] px-4 py-2 text-[11.5px] text-[#7a6030] sm:px-6 lg:px-8">
             <span>Viewing the customer portal as {currentUser?.name}. Actions affect this account.</span>
-            <button type="button" onClick={handleStopImpersonation} className="font-semibold underline">
-              Return to admin
+            <button type="button" onClick={() => run(handleStopImpersonation)} disabled={pending} aria-busy={pending} className="inline-flex items-center gap-1 font-semibold underline disabled:cursor-wait disabled:opacity-60">
+              {pending && <LoaderCircle className="size-3 animate-spin" />}
+              {pending ? "Returning…" : "Return to admin"}
             </button>
           </div>
         )}

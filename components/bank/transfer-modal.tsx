@@ -4,6 +4,8 @@ import { useEffect, useState, type FormEvent } from "react"
 import { ArrowLeftRight, Landmark, ShieldCheck } from "lucide-react"
 import { Modal } from "@/components/bank/modal"
 import { useToast } from "@/components/bank/toast"
+import { AsyncButton } from "@/components/bank/async-button"
+import { usePendingAction } from "@/components/bank/use-pending-action"
 import { Field, FieldHint, FormError, Input } from "@/components/bank/form"
 import { Button } from "@/components/ui/button"
 import { DEFAULT_BENEFICIARY, currency, type Beneficiary, type Transaction } from "@/lib/bank"
@@ -24,6 +26,7 @@ export function TransferModal({
 }) {
   const { currentUser, initiateTransfer, submitCot } = useBank()
   const { notify } = useToast()
+  const { pending, run } = usePendingAction()
 
   const [beneficiary, setBeneficiary] = useState<Beneficiary>({ ...DEFAULT_BENEFICIARY })
   const [amount, setAmount] = useState("")
@@ -79,30 +82,34 @@ export function TransferModal({
       setError("Beneficiary name, IBAN and BIC are required.")
       return
     }
-    const result = await initiateTransfer(currentUser!.id, { amount: value, beneficiary, note })
-    if (!result.ok) {
-      setError(result.error)
-      return
-    }
-    setTxId(result.transactionId)
+    await run(async () => {
+      const result = await initiateTransfer(currentUser!.id, { amount: value, beneficiary, note })
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      setTxId(result.transactionId)
+    })
   }
 
   async function handleCot(event: FormEvent) {
     event.preventDefault()
     if (!txId) return
     setCotError("")
-    const result = await submitCot(txId, cotInput)
-    if (!result.ok) {
-      setCotError(result.error)
-      return
-    }
-    setProgress(result.percent)
-    setReason(result.reason)
-    setCompleted(result.completed)
-    setCotInput("")
-    if (result.completed) {
-      notify(`${currency(value)} sent to ${beneficiary.name}. Transfer complete.`)
-    }
+    await run(async () => {
+      const result = await submitCot(txId, cotInput)
+      if (!result.ok) {
+        setCotError(result.error)
+        return
+      }
+      setProgress(result.percent)
+      setReason(result.reason)
+      setCompleted(result.completed)
+      setCotInput("")
+      if (result.completed) {
+        notify(`${currency(value)} sent to ${beneficiary.name}. Transfer complete.`)
+      }
+    })
   }
 
   const stage = txId ? "cot" : "form"
@@ -124,9 +131,9 @@ export function TransferModal({
             <Button variant="outline" className="h-9 px-3 text-[12px]" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" form="transfer-modal-form" className="h-9 px-3 text-[12px] font-semibold">
+            <AsyncButton type="submit" form="transfer-modal-form" pending={pending} pendingText="Processing…" className="h-9 px-3 text-[12px] font-semibold">
               Transfer
-            </Button>
+            </AsyncButton>
           </>
         ) : completed ? (
           <Button className="h-9 px-3 text-[12px] font-semibold" onClick={onClose}>
@@ -137,9 +144,9 @@ export function TransferModal({
             <Button variant="outline" className="h-9 px-3 text-[12px]" onClick={onClose}>
               Close
             </Button>
-            <Button type="submit" form="cot-modal-form" className="h-9 px-3 text-[12px] font-semibold">
+            <AsyncButton type="submit" form="cot-modal-form" pending={pending} pendingText="Verifying…" className="h-9 px-3 text-[12px] font-semibold">
               Submit code
-            </Button>
+            </AsyncButton>
           </>
         )
       }
@@ -152,16 +159,16 @@ export function TransferModal({
             </h3>
             <div className="grid gap-3">
               <Field label="Beneficiary name" htmlFor="tm-name">
-                <Input id="tm-name" value={beneficiary.name} onChange={(event) => setBeneficiary(updateBeneficiary(beneficiary, "name", event.target.value))} />
+                <Input id="tm-name" placeholder="Enter beneficiary name" value={beneficiary.name} onChange={(event) => setBeneficiary(updateBeneficiary(beneficiary, "name", event.target.value))} />
               </Field>
               <Field label="Bank" htmlFor="tm-bank">
-                <Input id="tm-bank" value={beneficiary.bank} onChange={(event) => setBeneficiary(updateBeneficiary(beneficiary, "bank", event.target.value))} />
+                <Input id="tm-bank" placeholder="Enter bank name" value={beneficiary.bank} onChange={(event) => setBeneficiary(updateBeneficiary(beneficiary, "bank", event.target.value))} />
               </Field>
               <Field label="IBAN" htmlFor="tm-iban">
-                <Input id="tm-iban" value={beneficiary.iban} onChange={(event) => setBeneficiary(updateBeneficiary(beneficiary, "iban", event.target.value.toUpperCase()))} className="font-mono text-[12px]" />
+                <Input id="tm-iban" placeholder="Enter beneficiary IBAN" value={beneficiary.iban} onChange={(event) => setBeneficiary(updateBeneficiary(beneficiary, "iban", event.target.value.toUpperCase()))} className="font-mono text-[12px]" />
               </Field>
               <Field label="BIC / SWIFT" htmlFor="tm-bic">
-                <Input id="tm-bic" value={beneficiary.bic} onChange={(event) => setBeneficiary(updateBeneficiary(beneficiary, "bic", event.target.value.toUpperCase()))} className="font-mono text-[12px]" />
+                <Input id="tm-bic" placeholder="Enter BIC / SWIFT code" value={beneficiary.bic} onChange={(event) => setBeneficiary(updateBeneficiary(beneficiary, "bic", event.target.value.toUpperCase()))} className="font-mono text-[12px]" />
               </Field>
             </div>
           </section>
