@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react"
 import Link from "next/link"
-import { Search, Users } from "lucide-react"
+import { KeyRound, Search, Users } from "lucide-react"
 import { Card, PageHeader, PanelHeading } from "@/components/bank/ui"
 import { Modal } from "@/components/bank/modal"
 import { AsyncButton } from "@/components/bank/async-button"
@@ -14,7 +14,7 @@ import { TX_TYPE_LABELS, currency, generateCotCode, sumAmounts, type Transaction
 import { useBank } from "@/lib/bank-store"
 
 export default function AdminTransactionsPage() {
-  const { transactions, users: allUsers, generateCot } = useBank()
+  const { transactions, users: allUsers, generateCot, issueDemoCot } = useBank()
   const { pending, run } = usePendingAction()
   const customers = allUsers.filter((user) => user.role === "user")
   const [query, setQuery] = useState("")
@@ -24,6 +24,12 @@ export default function AdminTransactionsPage() {
   const [cotPercent, setCotPercent] = useState("100")
   const [cotReason, setCotReason] = useState("")
   const [cotError, setCotError] = useState("")
+  const [demoCodeOpen, setDemoCodeOpen] = useState(false)
+  const [demoUserId, setDemoUserId] = useState("")
+  const [demoPercent, setDemoPercent] = useState("50")
+  const [demoDescription, setDemoDescription] = useState("")
+  const [issuedDemoCode, setIssuedDemoCode] = useState("")
+  const [demoCodeError, setDemoCodeError] = useState("")
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -37,6 +43,20 @@ export default function AdminTransactionsPage() {
     })
   }, [transactions, customers, query, type])
 
+  async function handleIssueDemoCode(event: FormEvent) {
+    event.preventDefault()
+    await run(async () => {
+      setDemoCodeError("")
+      setIssuedDemoCode("")
+      const result = await issueDemoCot(demoUserId, Number(demoPercent), demoDescription)
+      if (!result.ok) {
+        setDemoCodeError(result.error)
+        return
+      }
+      setIssuedDemoCode(result.code)
+    })
+  }
+
   return (
     <>
       <PageHeader
@@ -44,12 +64,27 @@ export default function AdminTransactionsPage() {
         title="All transactions"
         description="Every deposit, payment, transfer and manual adjustment across customer accounts."
         actions={
+          <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/admin/users"
             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-3 text-[11.5px] font-semibold text-[#515d65] transition hover:bg-muted"
           >
             <Users className="size-3.5" /> Manage customers
           </Link>
+          <Button
+            className="h-9 px-3 text-[11.5px] font-semibold"
+            onClick={() => {
+              setDemoUserId(customers[0]?.id ?? "")
+              setDemoPercent("50")
+              setDemoDescription("")
+              setIssuedDemoCode("")
+              setDemoCodeError("")
+              setDemoCodeOpen(true)
+            }}
+          >
+            <KeyRound className="size-3.5" /> Issue demo code
+          </Button>
+          </div>
         }
       />
 
@@ -204,6 +239,84 @@ export default function AdminTransactionsPage() {
               <Input id="cot-reason" value={cotReason} onChange={(event) => setCotReason(event.target.value)} placeholder="What is needed to complete" />
             </Field>
             <FormError>{cotError}</FormError>
+          </form>
+        </Modal>
+      )}
+      {demoCodeOpen && (
+        <Modal
+          title="Issue transfer code"
+          description="This is a one-time code for the transfer flow."
+          onClose={() => setDemoCodeOpen(false)}
+          footer={
+            <>
+              <Button variant="outline" className="h-9 px-3 text-[12px]" onClick={() => setDemoCodeOpen(false)}>
+                Close
+              </Button>
+              <AsyncButton
+                type="submit"
+                form="demo-cot-form"
+                pending={pending}
+                pendingText="Generating…"
+                disabled={!customers.length}
+                className="h-9 px-3 text-[12px] font-semibold"
+              >
+                Generate code
+              </AsyncButton>
+            </>
+          }
+        >
+          <form id="demo-cot-form" onSubmit={handleIssueDemoCode} className="space-y-3.5">
+            {!customers.length ? (
+              <p className="text-[12px] text-[#777777]">Create a customer account before issuing a demo code.</p>
+            ) : (
+              <>
+                <Field label="Customer" htmlFor="demo-cot-customer">
+                  <Select
+                    id="demo-cot-customer"
+                    value={demoUserId}
+                    onChange={(event) => {
+                      setDemoUserId(event.target.value)
+                      setIssuedDemoCode("")
+                    }}
+                  >
+                    {customers.map((customer) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.name} · {customer.email}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Progress" htmlFor="demo-cot-percent" hint="Only 100% displays the completion screen.">
+                  <Select id="demo-cot-percent" value={demoPercent} onChange={(event) => setDemoPercent(event.target.value)}>
+                    {[10, 25, 50, 75, 100].map((percent) => (
+                      <option key={percent} value={percent}>{percent}%</option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Requirement / message" htmlFor="description" hint="Shown to the customer after they enter the code.">
+                  <Input
+                    id="demo-cot-description"
+                    value={demoDescription}
+                    onChange={(event) => setDemoDescription(event.target.value)}
+                    maxLength={500}
+                    placeholder="Enter a safe message for the customer"
+                    required
+                  />
+                </Field>
+                {issuedDemoCode && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                    <p className="text-[11px] font-semibold text-emerald-800">One-time demo code · expires in 7 days</p>
+                    <output className="mt-1 block select-all font-mono text-lg font-bold tracking-widest text-emerald-950">
+                      {issuedDemoCode}
+                    </output>
+                    <p className="mt-1 text-[10px] text-emerald-800">
+                      Share this code with the selected test account. It is not a payment or transfer authorization.
+                    </p>
+                  </div>
+                )}
+                <FormError>{demoCodeError}</FormError>
+              </>
+            )}
           </form>
         </Modal>
       )}

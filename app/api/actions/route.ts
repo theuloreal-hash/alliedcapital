@@ -7,9 +7,11 @@ import {
   createCustomer,
   deposit,
   generateCot,
+  issueDemoCot,
   initiateTransfer,
   loadState,
   resetPassword,
+  redeemDemoCot,
   setCustomerStatus,
   submitCot,
   updateCustomer,
@@ -119,6 +121,19 @@ export async function POST(request: NextRequest) {
           Number(payload.percent),
           String(payload.reason ?? ""),
         )
+        break
+
+      case "issueDemoCot":
+        result = await issueDemoCot(
+          session,
+          String(payload.userId ?? ""),
+          Number(payload.percent),
+          String(payload.description ?? ""),
+        )
+        break
+
+      case "redeemDemoCot":
+        result = await redeemDemoCot(session, String(payload.code ?? ""))
         break
 
       default:

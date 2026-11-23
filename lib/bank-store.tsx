@@ -26,6 +26,10 @@ type CotResult =
 type LoginResult = { ok: true; user: BankUser } | { ok: false; error: string }
 type CreateResult = { ok: true; email: string; password: string } | { ok: false; error: string }
 type ResetResult = { ok: true; password: string } | { ok: false; error: string }
+type DemoCotIssueResult = { ok: true; code: string } | { ok: false; error: string }
+type DemoCotRedemptionResult =
+  | { ok: true; percent: number; description: string; demoOnly: true }
+  | { ok: false; error: string }
 
 type StatePayload = {
   currentUser: BankUser | null
@@ -47,7 +51,10 @@ type BankContextValue = {
   createCustomer: (input: NewCustomer) => Promise<CreateResult>
   updateCustomer: (
     userId: string,
-    updates: Partial<Pick<BankUser, "name" | "email" | "phone" | "dob" | "accountNumber">> & { password?: string },
+    updates: Partial<Pick<BankUser, "name" | "email" | "phone" | "dob" | "accountNumber">> & {
+      password?: string
+      avatarUrl?: string | null
+    },
   ) => Promise<Result>
   setCustomerStatus: (userId: string, status: AccountStatus) => Promise<void>
   deleteCustomer: (userId: string) => Promise<void>
@@ -57,6 +64,8 @@ type BankContextValue = {
   initiateTransfer: (userId: string, input: TransferInput) => Promise<TxResult>
   submitCot: (transactionId: string, code: string) => Promise<CotResult>
   generateCot: (transactionId: string, code: string, percent: number, reason: string) => Promise<Result>
+  issueDemoCot: (userId: string, percent: number, description: string) => Promise<DemoCotIssueResult>
+  redeemDemoCot: (code: string) => Promise<DemoCotRedemptionResult>
   changePassword: (currentPassword: string, newPassword: string) => Promise<Result>
   resetPassword: (userId: string, password: string) => Promise<ResetResult>
   impersonateCustomer: (userId: string) => Promise<void>
@@ -208,6 +217,23 @@ export function BankProvider({ children }: { children: ReactNode }) {
     generateCot: async (transactionId, code, percent, reason) => {
       const data = await action("generateCot", { transactionId, code, percent, reason })
       return data?.ok ? { ok: true } : { ok: false, error: data?.error ?? "Could not generate the COT code." }
+    },
+    issueDemoCot: async (userId, percent, description) => {
+      const data = await action("issueDemoCot", { userId, percent, description })
+      return data?.ok && typeof data.code === "string"
+        ? { ok: true, code: data.code }
+        : { ok: false, error: data?.error ?? "Could not issue the demo code." }
+    },
+    redeemDemoCot: async (code) => {
+      const data = await action("redeemDemoCot", { code })
+      return data?.ok
+        ? {
+            ok: true,
+            percent: Number(data.percent),
+            description: String(data.description ?? ""),
+            demoOnly: true,
+          }
+        : { ok: false, error: data?.error ?? "Could not redeem the demo code." }
     },
     changePassword: async (currentPassword, newPassword) => {
       const data = await action("changePassword", { currentPassword, newPassword })

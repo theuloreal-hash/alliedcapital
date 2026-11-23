@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, type FormEvent } from "react"
+import { useMemo, useState, type ChangeEvent, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { MoreHorizontal, Search, ShieldCheck, UserPlus, Users } from "lucide-react"
 import { Avatar, Card, PageHeader, PanelHeading, StatusPill } from "@/components/bank/ui"
@@ -16,6 +16,23 @@ import { useBank } from "@/lib/bank-store"
 type AdjustState = { user: BankUser; direction: "in" | "out" }
 
 const emptyForm = { name: "", email: "", password: "", openingBalance: "" }
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024
+
+type AvatarUploadSignature = {
+  cloudName: string
+  apiKey: string
+  signature: string
+  allowed_formats: string
+  folder: string
+  overwrite: string
+  public_id: string
+  timestamp: string
+}
+
+type CloudinaryUploadResponse = {
+  secure_url?: string
+  error?: { message?: string }
+}
 
 export default function AdminUsersPage() {
   const { users: allUsers, createCustomer, updateCustomer, setCustomerStatus, deleteCustomer, restoreCustomer, adjustBalance, resetPassword, impersonateCustomer, userTransactions } = useBank()
@@ -38,6 +55,7 @@ export default function AdminUsersPage() {
   const [editTarget, setEditTarget] = useState<BankUser | null>(null)
   const [editForm, setEditForm] = useState({ name: "", email: "", password: "", phone: "", dob: "" })
   const [editError, setEditError] = useState("")
+  const [avatarError, setAvatarError] = useState("")
   const [passwordTarget, setPasswordTarget] = useState<BankUser | null>(null)
   const [passwordValue, setPasswordValue] = useState("")
   const [passwordError, setPasswordError] = useState("")
@@ -121,6 +139,7 @@ export default function AdminUsersPage() {
 
   function openEdit(user: BankUser) {
     setEditTarget(user)
+    setAvatarError("")
     setEditForm({
       name: user.name,
       email: user.email,
@@ -154,6 +173,64 @@ export default function AdminUsersPage() {
       )
       setEditTarget(null)
     })
+  }
+
+  async function handleAvatarUpload(file: File) {
+    if (!editTarget) return
+    setAvatarError("")
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setAvatarError("Choose a JPG, PNG, or WebP image.")
+      return
+    }
+    if (file.size > MAX_AVATAR_SIZE) {
+      setAvatarError("Choose an image smaller than 5 MB.")
+      return
+    }
+
+    try {
+      await run(async () => {
+        const signingResponse = await fetch(`/api/admin/customers/${encodeURIComponent(editTarget.id)}/avatar-sign`, {
+          method: "POST",
+        })
+        const signature = (await signingResponse.json().catch(() => null)) as
+          | AvatarUploadSignature
+          | { error?: string }
+          | null
+        if (!signingResponse.ok || !signature || !("cloudName" in signature)) {
+          throw new Error(signature && "error" in signature && signature.error
+            ? signature.error
+            : "Could not authorize the profile image upload.")
+        }
+
+        const body = new FormData()
+        body.append("file", file)
+        body.append("api_key", signature.apiKey)
+        body.append("timestamp", signature.timestamp)
+        body.append("signature", signature.signature)
+        body.append("folder", signature.folder)
+        body.append("overwrite", signature.overwrite)
+        body.append("public_id", signature.public_id)
+        body.append("allowed_formats", signature.allowed_formats)
+
+        const uploadResponse = await fetch(
+          `https://api.cloudinary.com/v1_1/${encodeURIComponent(signature.cloudName)}/image/upload`,
+          { method: "POST", body },
+        )
+        const upload = (await uploadResponse.json().catch(() => null)) as CloudinaryUploadResponse | null
+        if (!uploadResponse.ok || !upload?.secure_url) {
+          throw new Error(upload?.error?.message ?? "Cloudinary could not upload this image.")
+        }
+
+        const result = await updateCustomer(editTarget.id, { avatarUrl: upload.secure_url })
+        if (!result.ok) throw new Error(result.error)
+
+        setEditTarget((current) => current ? { ...current, avatarUrl: upload.secure_url } : current)
+        notify("Customer profile photo updated.")
+      })
+    } catch (error) {
+      setAvatarError(error instanceof Error ? error.message : "Could not upload the profile photo.")
+    }
   }
 
   async function handleResetPassword(event: FormEvent) {
@@ -243,7 +320,7 @@ export default function AdminUsersPage() {
                     <tr key={customer.id} className="border-b border-[#f0f0ed] last:border-0 hover:bg-[#fbfbf8]">
                       <td className="px-4 py-3 sm:px-5">
                         <div className="flex items-center gap-2.5">
-                          <Avatar name={customer.name} className="size-9" />
+                          <Avatar name={customer.name} src={customer.avatarUrl} className="size-9" />
                           <div className="min-w-0">
                             <div className="text-[12.5px] font-semibold text-[#46515a]">{customer.name}</div>
                             <div className="text-[10.5px] text-[#a0a5a5]">{customer.email}</div>
@@ -529,6 +606,26 @@ export default function AdminUsersPage() {
           }
         >
           <form id="edit-customer-form" onSubmit={handleEdit} className="space-y-3.5">
+            <Field label="Profile photo" htmlFor="edit-avatar">
+              <div className="flex items-center gap-3">
+                <Avatar name={editTarget.name} src={editTarget.avatarUrl} className="size-14 text-base" />
+                <div className="min-w-0 flex-1">
+                  <Input
+                    id="edit-avatar"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={pending}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      const file = event.target.files?.[0]
+                      event.target.value = ""
+                      if (file) void handleAvatarUpload(file)
+                    }}
+                  />
+                  <p className="mt-1 text-[10.5px] text-muted-foreground">JPG, PNG, or WebP · maximum 5 MB. Only admins can change this photo.</p>
+                </div>
+              </div>
+              {avatarError && <p role="alert" className="mt-1 text-[11px] font-medium text-[#b05b4f]">{avatarError}</p>}
+            </Field>
             <Field label="Full name" htmlFor="edit-name">
               <Input id="edit-name" value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} />
             </Field>

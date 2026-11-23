@@ -84,15 +84,15 @@ export function StatusPill({ status }: { status: string }) {
   return <Pill tone={tone}>{status}</Pill>
 }
 
-export function Avatar({ name, className }: { name: string; className?: string }) {
+export function Avatar({ name, src, className }: { name: string; src?: string; className?: string }) {
   return (
     <span
       className={cn(
-        "grid size-9 shrink-0 place-items-center rounded-full bg-[#eee8dc] text-[11px] font-bold text-[#80622c]",
+        "grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[#eee8dc] text-[11px] font-bold text-[#80622c]",
         className,
       )}
     >
-      {initials(name)}
+      {src ? <img src={src} alt="" className="size-full object-cover" /> : initials(name)}
     </span>
   )
 }

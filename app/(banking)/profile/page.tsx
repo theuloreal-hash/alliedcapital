@@ -84,7 +84,7 @@ export default function ProfilePage() {
       <PageHeader eyebrow="Profile" title="My profile" description="View and update your personal details." />
       <Card className="max-w-[560px]">
         <div className="flex items-center gap-3 border-b border-[#d7d7d7] bg-[#f2f2f2] px-4 py-3">
-          <Avatar name={user.name} className="size-10" />
+          <Avatar name={user.name} src={user.avatarUrl} className="size-10" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13px] font-medium text-[#555555]">{user.name}</div>
             <div className="truncate text-[10.5px] text-[#777777]">{user.email}</div>

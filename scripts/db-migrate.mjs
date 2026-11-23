@@ -36,6 +36,23 @@ async function main() {
     console.log("Added users.username.")
   }
 
+  if (!userColumns.includes("avatar_url")) {
+    await client.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT")
+    console.log("Added users.avatar_url.")
+  }
+
+  await client.execute(`CREATE TABLE IF NOT EXISTS demo_cot_codes (
+    code_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    percent INTEGER NOT NULL CHECK (percent >= 0 AND percent <= 100),
+    description TEXT NOT NULL,
+    created_by TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT
+  )`)
+  await client.execute("CREATE INDEX IF NOT EXISTS idx_demo_cot_user ON demo_cot_codes(user_id, created_at DESC)")
+
   await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(lower(username))")
   console.log("Ensured the username index.")
 

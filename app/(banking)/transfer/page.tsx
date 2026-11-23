@@ -5,6 +5,7 @@ import { useBank } from "@/lib/bank-store"
 import { TransferModal } from "@/components/bank/transfer-modal"
 import { Card, PageHeader } from "@/components/bank/ui"
 import { TransactionTable } from "@/components/bank/transaction-table"
+import { DemoCotPanel } from "@/components/bank/demo-cot-panel"
 import { currency, sumAmounts, type Transaction } from "@/lib/bank"
 
 export default function TransferPage() {
@@ -33,15 +34,15 @@ export default function TransferPage() {
         eyebrow="Payments"
         title="Transfer money"
         description="Send funds to a beneficiary abroad or at home, and follow every transfer here."
-        actions={
-          <button
-            type="button"
-            onClick={() => startTransfer()}
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#ddaa3f] px-3 text-[11.5px] font-semibold text-white transition hover:bg-[#c99735]"
-          >
-            <ArrowUpRight className="size-3.5" /> New transfer
-          </button>
-        }
+        // actions={
+        //   <button
+        //     type="button"
+        //     onClick={() => startTransfer()}
+        //     className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#ddaa3f] px-3 text-[11.5px] font-semibold text-white transition hover:bg-[#c99735]"
+        //   >
+        //     <ArrowUpRight className="size-3.5" /> New transfer
+        //   </button>
+        // }
       />
 
       <div className="mx-auto w-full max-w-[720px] space-y-4">
@@ -60,6 +61,7 @@ export default function TransferPage() {
             Transfer Money
           </button>
         </div>
+          <DemoCotPanel />
 
         <div className="grid gap-3 sm:grid-cols-3">
           <Card className="px-4 py-3.5">
@@ -91,6 +93,8 @@ export default function TransferPage() {
             />
           </div>
           </Card>
+
+
         </div>
 
       <TransferModal

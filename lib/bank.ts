@@ -41,6 +41,7 @@ export type BankUser = {
   createdAt: string
   phone?: string
   dob?: string
+  avatarUrl?: string
   deletedAt?: string
 }
 

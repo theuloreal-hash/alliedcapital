@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto"
+import { createHash, randomInt, randomUUID } from "node:crypto"
 import { db } from "@/lib/db"
 import {
   HttpError,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth"
 import { mapTransaction, type TransactionRow } from "@/lib/transaction-mapper"
 import { currency, type AccountStatus, type BankUser, type Beneficiary } from "@/lib/bank"
+import { getCloudinaryConfig, isCloudinaryImageUrl } from "@/lib/cloudinary"
 import { notifyAdmin, sendCredentialsEmail, transferNotification } from "@/lib/email"
 
 type UserRow = {
@@ -26,6 +27,7 @@ type UserRow = {
   status: AccountStatus
   phone: string | null
   dob: string | null
+  avatar_url?: string | null
   created_at: string
   deleted_at: string | null
 }
@@ -42,6 +44,8 @@ export type StatePayload = {
 const id = (prefix: string) => `${prefix}_${randomUUID().replace(/-/g, "").slice(0, 12)}`
 const toCents = (amount: number) => Math.round(amount * 100)
 const reference = (prefix: string) => `${prefix}-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`
+const DEMO_COT_CHARACTERS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*+-=?"
+const hashDemoCotCode = (code: string) => createHash("sha256").update(code).digest("hex")
 
 export async function loadState(user: BankUser | null, impersonatorId: string | null): Promise<StatePayload> {
   if (!user) return { currentUser: null, impersonatorId: null, users: [], transactions: [] }
@@ -196,7 +200,10 @@ export async function createCustomer(
 export async function updateCustomer(
   session: Session,
   userId: string,
-  updates: Partial<Pick<BankUser, "name" | "email" | "phone" | "dob" | "accountNumber">> & { password?: string },
+  updates: Partial<Pick<BankUser, "name" | "email" | "phone" | "dob" | "accountNumber">> & {
+    password?: string
+    avatarUrl?: string | null
+  },
 ): Promise<Result> {
   const isAdmin = session.user.role === "admin"
   if (!isAdmin && session.user.id !== userId) throw new HttpError(403, "You can only edit your own profile.")
@@ -236,6 +243,18 @@ export async function updateCustomer(
   if (updates.accountNumber !== undefined && isAdmin) {
     fields.push("account_number = ?")
     args.push(updates.accountNumber.trim())
+  }
+
+  if (updates.avatarUrl !== undefined) {
+    if (!isAdmin) throw new HttpError(403, "Only administrators can change a customer profile photo.")
+    if (updates.avatarUrl !== null) {
+      const cloudinary = getCloudinaryConfig()
+      if (!cloudinary || !isCloudinaryImageUrl(updates.avatarUrl, cloudinary.cloudName)) {
+        return { ok: false, error: "Choose a valid profile image uploaded to this Cloudinary account." }
+      }
+    }
+    fields.push("avatar_url = ?")
+    args.push(updates.avatarUrl)
   }
 
   if (updates.password) {
@@ -552,14 +571,13 @@ export async function submitCot(
   if ((code ?? "").trim() !== tx.cot_code) return { ok: false, error: "Invalid COT code." }
 
   const percent = tx.cot_percent ?? 0
-  const completed = percent >= 100
 
   await db.execute({
-    sql: "UPDATE transactions SET cot_submitted_at = ?, status = ? WHERE id = ?",
-    args: [new Date().toISOString(), completed ? "Completed" : "Pending", transactionId],
+    sql: "UPDATE transactions SET cot_submitted_at = ?, status = 'Pending' WHERE id = ?",
+    args: [new Date().toISOString(), transactionId],
   })
 
-  return { ok: true, percent, reason: tx.cot_reason ?? "", completed }
+  return { ok: true, percent, reason: tx.cot_reason ?? "", completed: false }
 }
 
 export async function generateCot(
@@ -582,6 +600,71 @@ export async function generateCot(
 
   if (updated.rowsAffected === 0) return { ok: false, error: "Transfer not found." }
   return { ok: true }
+}
+
+export async function issueDemoCot(
+  session: Session,
+  userId: string,
+  percent: number,
+  description: string,
+): Promise<Result<{ code: string }>> {
+  if (session.user.role !== "admin") throw new HttpError(403, "Administrator access required.")
+  if (!Number.isInteger(percent) || percent < 0 || percent > 100) {
+    return { ok: false, error: "Enter a percentage between 0 and 100." }
+  }
+  const cleanDescription = description.trim()
+  if (!cleanDescription || cleanDescription.length > 500) {
+    return { ok: false, error: "Enter a demo requirement of 1 to 500 characters." }
+  }
+
+  const customer = await getUserRow(userId)
+  if (!customer || customer.role !== "user") return { ok: false, error: "Customer not found." }
+
+  const code = Array.from({ length: 10 }, () => DEMO_COT_CHARACTERS[randomInt(DEMO_COT_CHARACTERS.length)]).join("")
+  const now = new Date()
+  const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+
+  await db.execute({
+    sql: `INSERT INTO demo_cot_codes (code_hash, user_id, percent, description, created_by, created_at, expires_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      hashDemoCotCode(code),
+      userId,
+      percent,
+      cleanDescription,
+      session.user.id,
+      now.toISOString(),
+      expiresAt.toISOString(),
+    ],
+  })
+
+  return { ok: true, code }
+}
+
+export async function redeemDemoCot(
+  session: Session,
+  code: string,
+): Promise<Result<{ percent: number; description: string; demoOnly: true }>> {
+  if (session.user.role !== "user") throw new HttpError(403, "Sign in as a customer to use a demo code.")
+  const normalizedCode = code.trim()
+  if (normalizedCode.length !== 10) return { ok: false, error: "Enter a valid 10-character demo code." }
+
+  const now = new Date().toISOString()
+  const result = await db.execute({
+    sql: `SELECT code_hash, percent, description FROM demo_cot_codes
+          WHERE code_hash = ? AND user_id = ? AND used_at IS NULL AND expires_at > ? LIMIT 1`,
+    args: [hashDemoCotCode(normalizedCode), session.user.id, now],
+  })
+  const grant = result.rows[0] as unknown as { code_hash: string; percent: number; description: string } | undefined
+  if (!grant) return { ok: false, error: "That demo code is invalid, expired, or already used." }
+
+  const used = await db.execute({
+    sql: "UPDATE demo_cot_codes SET used_at = ? WHERE code_hash = ? AND used_at IS NULL",
+    args: [now, grant.code_hash],
+  })
+  if (used.rowsAffected === 0) return { ok: false, error: "That demo code has already been used." }
+
+  return { ok: true, percent: grant.percent, description: grant.description, demoOnly: true }
 }
 
 /* ----------------------------------------------------------------- utils */

@@ -47,6 +47,7 @@ type UserRow = {
   status: BankUser["status"]
   phone: string | null
   dob: string | null
+  avatar_url?: string | null
   created_at: string
   deleted_at: string | null
 }
@@ -64,6 +65,7 @@ export function mapUser(row: UserRow): BankUser {
     createdAt: row.created_at,
     phone: row.phone ?? undefined,
     dob: row.dob ?? undefined,
+    avatarUrl: row.avatar_url ?? undefined,
     deletedAt: row.deleted_at ?? undefined,
   }
 }

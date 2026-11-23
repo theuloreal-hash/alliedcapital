@@ -135,7 +135,7 @@ export function AppShell({ role, children }: { role: "user" | "admin"; children:
         </div>
 
         <div className="flex items-center gap-2.5 border-t border-border pt-3">
-          <Avatar name={currentUser?.name ?? "Guest"} className="size-9 bg-[#e9edf0] text-[#526370]" />
+          <Avatar name={currentUser?.name ?? "Guest"} src={currentUser?.avatarUrl} className="size-9 bg-[#e9edf0] text-[#526370]" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[11.5px] font-bold text-[#36404a]">{currentUser?.name}</div>
             <div className="truncate text-[10px] text-[#90969a]">{currentUser?.email}</div>
@@ -189,7 +189,7 @@ export function AppShell({ role, children }: { role: "user" | "admin"; children:
             </div>
             <div className="h-6 w-px bg-border" />
             <div className="flex items-center gap-2">
-              <Avatar name={currentUser?.name ?? "Guest"} className="size-8" />
+              <Avatar name={currentUser?.name ?? "Guest"} src={currentUser?.avatarUrl} className="size-8" />
               <div className="hidden leading-tight md:block">
                 <div className="text-[11px] font-bold text-[#36404a]">{currentUser?.name}</div>
                 <div className="text-[9.5px] text-[#90969a]">{role === "admin" ? "Administrator" : "Customer"}</div>

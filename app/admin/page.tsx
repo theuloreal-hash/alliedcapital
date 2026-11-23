@@ -93,7 +93,7 @@ export default function AdminOverviewPage() {
                   <tr key={customer.id} className="border-b border-[#f0f0ed] last:border-0 hover:bg-[#fbfbf8]">
                     <td className="px-4 py-3 sm:px-5">
                       <div className="flex items-center gap-2.5">
-                        <Avatar name={customer.name} className="size-8" />
+                        <Avatar name={customer.name} src={customer.avatarUrl} className="size-8" />
                         <div className="min-w-0">
                           <div className="truncate text-[12px] font-semibold text-[#46515a]">{customer.name}</div>
                           <div className="truncate text-[10px] text-[#a0a5a5]">{customer.email}</div>
@@ -120,7 +120,7 @@ export default function AdminOverviewPage() {
                 const owner = customers.find((customer) => customer.id === row.userId)
                 return (
                   <li key={row.id} className="flex items-center gap-3 px-4 py-2.5 sm:px-5">
-                    <Avatar name={owner?.name ?? "Bank"} className="size-7 text-[9px]" />
+                    <Avatar name={owner?.name ?? "Bank"} src={owner?.avatarUrl} className="size-7 text-[9px]" />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[11.5px] font-semibold text-[#46515a]">{row.description}</div>
                       <div className="text-[10px] text-[#a0a5a5]">
