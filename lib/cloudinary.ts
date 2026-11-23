@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto"
+import { createHash } from "node:crypto"
 
 export type CloudinaryConfig = {
   cloudName: string
@@ -27,11 +27,11 @@ export function getCloudinaryConfig(): CloudinaryConfig | null {
 export function signCloudinaryParams(params: Record<string, string>, apiSecret: string) {
   const payload = Object.entries(params)
     .filter(([, value]) => value !== "")
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
     .map(([key, value]) => `${key}=${value}`)
     .join("&")
 
-  return createHmac("sha1", apiSecret).update(payload).digest("hex")
+  return createHash("sha1").update(`${payload}${apiSecret}`).digest("hex")
 }
 
 export function isCloudinaryImageUrl(value: string, cloudName: string) {
