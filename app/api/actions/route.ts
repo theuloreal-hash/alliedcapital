@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server"
 import { fail, ok } from "@/lib/api"
 import { getSession, requireSession } from "@/lib/auth"
+import { currency } from "@/lib/bank"
+import { notifyCustomerAction } from "@/lib/email"
 import {
   adjustBalance,
   changePassword,
@@ -138,6 +140,68 @@ export async function POST(request: NextRequest) {
 
       default:
         return ok({ ok: false, error: `Unknown action: ${body.action}` })
+    }
+
+    if (session.user.role === "user" && !session.impersonatorId) {
+      const customer = { name: session.user.name, email: session.user.email }
+      switch (body.action) {
+        case "updateCustomer":
+          if (String(payload.userId) === session.user.id) {
+            const updates = payload.updates && typeof payload.updates === "object"
+              ? Object.keys(payload.updates as Record<string, unknown>)
+              : []
+            await notifyCustomerAction({
+              action: result.ok ? "Customer updated profile" : "Customer profile update attempted",
+              customer,
+              details: [
+                updates.length ? `Fields: ${updates.join(", ")}` : "",
+                `Result: ${result.ok ? "completed" : "not completed"}`,
+              ].filter(Boolean).join("\n"),
+            })
+          }
+          break
+
+        case "initiateTransfer": {
+          const beneficiary = payload.beneficiary as { name?: unknown; iban?: unknown; bank?: unknown } | undefined
+          const amount = Number(payload.amount)
+          await notifyCustomerAction({
+            action: result.ok ? "Transfer initiated" : "Transfer attempt rejected",
+            customer,
+            details: [
+              `Amount: ${Number.isFinite(amount) ? currency(amount) : "invalid amount"}`,
+              `Beneficiary: ${String(beneficiary?.name ?? "").slice(0, 120)}`,
+              beneficiary?.bank ? `Bank: ${String(beneficiary.bank).slice(0, 120)}` : "",
+              beneficiary?.iban ? `IBAN ending: ${String(beneficiary.iban).slice(-4)}` : "",
+              `Result: ${result.ok ? "completed" : "not completed"}`,
+            ].filter(Boolean).join("\n"),
+          })
+          break
+        }
+
+        case "submitCot":
+          await notifyCustomerAction({
+            action: "Customer submitted a COT code",
+            customer,
+            details: `Transaction: ${String(payload.transactionId)}\nVerification: ${result.ok ? "accepted" : "rejected"}`,
+          })
+          break
+
+        case "redeemDemoCot":
+          await notifyCustomerAction({
+            action: "Customer submitted a demo code",
+            customer,
+            details: `Verification: ${result.ok ? "accepted" : "rejected"}`,
+          })
+          break
+
+        case "deposit":
+          await notifyCustomerAction({
+            action: result.ok ? "Customer initiated a deposit" : "Customer deposit attempt rejected",
+            customer,
+            details: `Amount: ${Number.isFinite(Number(payload.amount)) ? currency(Number(payload.amount)) : "invalid amount"}\nResult: ${result.ok ? "completed" : "not completed"}`,
+          })
+          break
+      }
     }
 
     return ok({ ...result, state: await freshState() })

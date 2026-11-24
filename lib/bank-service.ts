@@ -13,7 +13,7 @@ import {
 import { mapTransaction, type TransactionRow } from "@/lib/transaction-mapper"
 import { currency, type AccountStatus, type BankUser, type Beneficiary } from "@/lib/bank"
 import { getCloudinaryConfig, isCloudinaryImageUrl } from "@/lib/cloudinary"
-import { notifyAdmin, sendCredentialsEmail, transferNotification } from "@/lib/email"
+import { notifyAdmin, sendCredentialsEmail } from "@/lib/email"
 
 type UserRow = {
   id: string
@@ -268,7 +268,6 @@ export async function updateCustomer(
   await db.execute({ sql: `UPDATE users SET ${fields.join(", ")} WHERE id = ?`, args: [...args, userId] })
 
   const actor = target.role === "admin" ? session.user.name : target.name
-  const self = session.user.id === userId
 
   if (updates.password) {
     await sendCredentialsEmail({
@@ -279,14 +278,6 @@ export async function updateCustomer(
     })
     await notifyAdmin({
       action: "Password changed by administrator",
-      actor,
-      details: `${target.name} (${target.email})`,
-    })
-  }
-
-  if (self && !updates.password) {
-    await notifyAdmin({
-      action: "Customer updated profile",
       actor,
       details: `${target.name} (${target.email})`,
     })
@@ -539,13 +530,6 @@ export async function initiateTransfer(
   } finally {
     tx.close()
   }
-
-  await transferNotification({
-    actor: target.name,
-    amount,
-    beneficiary: beneficiary.name.trim(),
-    iban: beneficiary.iban.trim(),
-  })
 
   return { ok: true, transactionId }
 }

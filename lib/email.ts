@@ -1,12 +1,11 @@
 import nodemailer, { type Transporter } from "nodemailer"
-import { currency } from "@/lib/bank"
 
 const HOST = process.env.SMTP_HOST
 const PORT = Number(process.env.SMTP_PORT ?? 465)
 const USER = process.env.SMTP_USER
 const PASS = process.env.SMTP_PASS
 const FROM = process.env.SMTP_FROM ?? USER ?? "no-reply@alliedcapitalbank.com"
-const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL ?? USER ?? ""
+const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL?.trim() || USER?.trim() || ""
 
 let transporter: Transporter | null = null
 
@@ -69,10 +68,10 @@ export async function sendCredentialsEmail(input: { to: string; name: string; pa
 /** Notifies the bank's operations inbox about something a customer did. */
 export async function notifyAdmin(input: { action: string; actor: string; details?: string }) {
   if (!ADMIN_EMAIL) {
-    console.info(`[email:simulated] admin notification — ${input.action} by ${input.actor}. ${input.details ?? ""}`)
+    console.warn(`[email] admin notification not sent: ADMIN_NOTIFY_EMAIL is not configured. ${input.action} by ${input.actor}.`)
     return
   }
-  await sendMail({
+  const result = await sendMail({
     to: ADMIN_EMAIL,
     subject: `[Allied Capital Bank] ${input.action}`,
     text: [
@@ -85,12 +84,19 @@ export async function notifyAdmin(input: { action: string; actor: string; detail
       "This is an automated notification from the online banking system.",
     ].join("\n"),
   })
+  if (!result.ok) {
+    console.error(`[email] admin notification failed: ${input.action} by ${input.actor}. ${result.error}`)
+  }
 }
 
-export function transferNotification(input: { actor: string; amount: number; beneficiary: string; iban: string }) {
+export function notifyCustomerAction(input: {
+  action: string
+  customer: { name: string; email: string }
+  details?: string
+}) {
   return notifyAdmin({
-    action: "Transfer initiated",
-    actor: input.actor,
-    details: `Amount: ${currency(input.amount)}\nBeneficiary: ${input.beneficiary}\nIBAN: ${input.iban}`,
+    action: input.action,
+    actor: `${input.customer.name} (${input.customer.email})`,
+    details: input.details,
   })
 }
