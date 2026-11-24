@@ -267,7 +267,7 @@ export default function AdminTransactionsPage() {
         >
           <form id="demo-cot-form" onSubmit={handleIssueDemoCode} className="space-y-3.5">
             {!customers.length ? (
-              <p className="text-[12px] text-[#777777]">Create a customer account before issuing a demo code.</p>
+              <p className="text-[12px] text-[#777777]">Create a customer account before issuing a code.</p>
             ) : (
               <>
                 <Field label="Customer" htmlFor="demo-cot-customer">

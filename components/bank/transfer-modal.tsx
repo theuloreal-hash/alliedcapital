@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { ArrowLeftRight, Landmark, ShieldCheck } from "lucide-react"
 import { Modal } from "@/components/bank/modal"
-import { useToast } from "@/components/bank/toast"
 import { AsyncButton } from "@/components/bank/async-button"
 import { usePendingAction } from "@/components/bank/use-pending-action"
 import { Field, FieldHint, FormError, Input } from "@/components/bank/form"
@@ -25,7 +24,6 @@ export function TransferModal({
   resume?: Transaction | null
 }) {
   const { currentUser, initiateTransfer, submitCot } = useBank()
-  const { notify } = useToast()
   const { pending, run } = usePendingAction()
 
   const [beneficiary, setBeneficiary] = useState<Beneficiary>({ ...DEFAULT_BENEFICIARY })
@@ -35,36 +33,33 @@ export function TransferModal({
   const [txId, setTxId] = useState<string | null>(null)
   const [cotInput, setCotInput] = useState("")
   const [cotError, setCotError] = useState("")
+  const [cotSubmitted, setCotSubmitted] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [reason, setReason] = useState("")
-  const [completed, setCompleted] = useState(false)
-  const completionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [cotReason, setCotReason] = useState("")
+  const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (!open) return
-    if (completionTimer.current) clearTimeout(completionTimer.current)
-    if (resume) {
-      setBeneficiary(resume.beneficiary ?? { ...DEFAULT_BENEFICIARY })
-      setAmount(String(resume.amount))
-      setNote(resume.description)
-      setTxId(resume.id)
-      setProgress(resume.cotPercent ?? 0)
-      setReason(resume.cotReason ?? "")
-      setCompleted(resume.status === "Completed")
-    } else {
-      setBeneficiary({ ...DEFAULT_BENEFICIARY })
-      setAmount("")
-      setNote("")
-      setTxId(null)
+    if (open) {
+      if (resume) {
+        setBeneficiary(resume.beneficiary ?? { ...DEFAULT_BENEFICIARY })
+        setAmount(String(resume.amount))
+        setNote(resume.description)
+        setTxId(resume.id)
+      } else {
+        setBeneficiary({ ...DEFAULT_BENEFICIARY })
+        setAmount("")
+        setNote("")
+        setTxId(null)
+      }
+      setCotSubmitted(false)
       setProgress(0)
-      setReason("")
-      setCompleted(false)
+      setCotReason("")
+      setError("")
+      setCotInput("")
+      setCotError("")
     }
-    setError("")
-    setCotInput("")
-    setCotError("")
     return () => {
-      if (completionTimer.current) clearTimeout(completionTimer.current)
+      if (progressTimer.current) clearTimeout(progressTimer.current)
     }
   }, [open, resume])
 
@@ -107,16 +102,11 @@ export function TransferModal({
         setCotError(result.error)
         return
       }
-      setProgress(result.percent)
-      setReason(result.reason)
-      setCompleted(false)
+      setCotReason(result.reason)
+      setProgress(0)
+      setCotSubmitted(true)
       setCotInput("")
-      if (result.completed) {
-        completionTimer.current = setTimeout(() => {
-          setCompleted(true)
-          notify(`${currency(value)} sent to ${beneficiary.name}. Transfer complete.`)
-        }, 1900)
-      }
+      progressTimer.current = setTimeout(() => setProgress(result.percent), 50)
     })
   }
 
@@ -124,12 +114,12 @@ export function TransferModal({
 
   return (
     <Modal
-      title={stage === "form" ? "Transfer money" : completed ? "Transfer complete" : "Transfer in progress"}
+      title={stage === "form" ? "Transfer money" : cotSubmitted ? "Transfer progress" : "COT code required"}
       description={
         stage === "form"
           ? "Send a transfer to your saved beneficiary."
-          : completed
-            ? "Your transfer has been completed successfully."
+          : cotSubmitted
+            ? "The administrator-configured progress and update for this transfer."
             : "Enter the COT code provided by the bank to continue."
       }
       onClose={onClose}
@@ -143,7 +133,7 @@ export function TransferModal({
               Transfer
             </AsyncButton>
           </>
-        ) : completed ? (
+        ) : cotSubmitted ? (
           <Button className="h-9 px-3 text-[12px] font-semibold" onClick={onClose}>
             Close
           </Button>
@@ -210,64 +200,44 @@ export function TransferModal({
             <div className="mt-0.5 text-[11px] text-[#8a9196]">to {beneficiary.name}</div>
           </div>
 
-          {completed ? (
-            <div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-8 text-center">
-              <div className="pointer-events-none absolute inset-x-8 top-0 h-20" aria-hidden="true">
-                {Array.from({ length: 14 }, (_, index) => (
-                  <span
-                    key={index}
-                    className="cot-confetti absolute top-0 size-2 rounded-sm"
-                    style={{
-                      left: `${(index * 37 + 9) % 100}%`,
-                      backgroundColor: ["#16a34a", "#f59e0b", "#0ea5e9", "#ec4899"][index % 4],
-                      animationDelay: `${(index % 7) * 90}ms`,
-                    }}
-                  />
-                ))}
+          {cotSubmitted ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-[12px] text-[#44534b]">
+                <span className="font-semibold">Transfer progress</span>
+                <span className="font-bold tabular-nums text-emerald-700">{progress}%</span>
               </div>
-              <div className="mx-auto grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-700">
-                <ShieldCheck className="size-8" />
+              <div
+                className="h-8 w-full overflow-hidden rounded-full bg-emerald-100 shadow-inner"
+                role="progressbar"
+                aria-label="Configured transfer progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progress}
+              >
+                <div
+                  className="cot-progress-fill relative h-full rounded-full bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.35)]"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
-              <h3 className="mt-4 text-[18px] font-bold text-emerald-900">Transfer successful</h3>
-              <p className="mt-1 text-[12px] text-emerald-800">
-                {currency(value)} sent to {beneficiary.name}.
+              <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3.5">
+                <p className="text-[10px] font-bold tracking-wide text-red-700 uppercase">Transfer update</p>
+                <p className="mt-1.5 text-[14px] font-bold leading-relaxed text-red-800">
+                  {cotReason || "No additional update was provided by the administrator."}
+                </p>
+              </div>
+              <p className="rounded-lg bg-[#f7f7f4] px-3 py-2.5 text-[11px] font-medium leading-relaxed text-[#5d6266]">
+                Please contact Customerservice@alliedcapitalbank.com if you have questions about this transfer.
               </p>
-              <p className="mt-2 text-[11px] text-emerald-700">A confirmation email has been sent.</p>
             </div>
           ) : (
             <>
-              <div className="space-y-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
-                <div className="flex items-center justify-between text-[12px] text-[#44534b]">
-                  <span className="font-semibold">Transferring...</span>
-                  <span className="font-bold tabular-nums text-emerald-700">{progress}%</span>
-                </div>
-                <div
-                  className="h-7 w-full overflow-hidden rounded-full bg-emerald-100 shadow-inner"
-                  role="progressbar"
-                  aria-label="Transfer progress"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.min(100, Math.max(0, progress))}
-                >
-                  <div
-                    className="cot-progress-fill relative h-full rounded-full bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.35)]"
-                    style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-                  />
-                </div>
-                <div className="rounded-lg border border-emerald-200 bg-white/80 px-3 py-2.5">
-                  <p className="text-[10px] font-bold tracking-wide text-emerald-700 uppercase">Transfer update</p>
-                  <p className="mt-1 text-[13px] font-bold leading-relaxed text-emerald-950">
-                    {reason || "Your transfer is being processed. We will update you when the next step is ready."}
-                  </p>
-                </div>
-              </div>
               <form id="cot-modal-form" onSubmit={handleCot} className="space-y-3">
                 <Field label="COT code" htmlFor="tm-cot">
                   <Input id="tm-cot" value={cotInput} onChange={(event) => setCotInput(event.target.value)} placeholder="Enter COT code" />
                 </Field>
                 <FormError>{cotError}</FormError>
                 <p className="text-[10.5px] leading-relaxed text-[#858d92]">
-                  The COT code is generated by the bank administrator for this transaction.
+                  The COT code is generated by the bank for this transaction.
                 </p>
               </form>
             </>
